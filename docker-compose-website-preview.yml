@@ -8,9 +8,9 @@ services:
       - traefik_proxy
     labels:
       - traefik.enable=true
-      - traefik.http.routers.lan.rule=Host(`lan.jkool.nl`)
-      - traefik.http.routers.lan.entrypoints=websecure
-      - traefik.http.routers.lan.tls.certresolver=leresolver
+      - traefik.http.routers.lanlocal.rule=Host(`lan.jkool.nl`)
+      - traefik.http.routers.lanlocal.entrypoints=websecure
+      - traefik.http.routers.lanlocal.tls.certresolver=leresolver
 networks:
   traefik_proxy:
     name: traefik_proxy
