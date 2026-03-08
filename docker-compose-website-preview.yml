@@ -1,0 +1,17 @@
+services:
+  website:
+    build:
+      context: ./website
+    pull_policy: build
+    restart: always
+    networks:
+      - traefik_proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.lan.rule=Host(`lan.jkool.nl`)
+      - traefik.http.routers.lan.entrypoints=websecure
+      - traefik.http.routers.lan.tls.certresolver=leresolver
+networks:
+  traefik_proxy:
+    name: traefik_proxy
+    external: true
