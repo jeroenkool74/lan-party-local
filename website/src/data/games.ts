@@ -36,6 +36,79 @@ const platform = (
 
 export const games: GameEntry[] = [
   {
+    slug: '0-a-d',
+    title: '0 A.D.',
+    genreLabel: 'Real-time strategy',
+    highlight:
+      'Bouw een oude beschaving op, verzamel grondstoffen en stuur grote legers het veld in.',
+    descriptionNl:
+      'Een historische real-time strategygame waarin je een nederzetting uitbouwt, grondstoffen verzamelt, technologie onderzoekt en legers inzet tegen andere spelers. Je speelt met oude beschavingen en probeert economisch en militair de overhand te krijgen.',
+    setupNote:
+      'De lokale collectie bevat een Windows-installer, een Linux AppImage en twee losse macOS-dmg\'s: een voor Intel en een voor Apple Silicon.',
+    keywords: ['rts', 'strategy', 'ancient', 'base building', 'multiplayer'],
+    accent: '#b97a36',
+    platforms: [
+      platform(
+        'windows',
+        'download',
+        'Losse Windows-installer voor 64-bit systemen.',
+        [
+          'Download het exe-bestand en start de installer.',
+          'Doorloop de setup en kies een map waar de game mag worden geinstalleerd.',
+          'Start 0 A.D. daarna vanuit het startmenu of de installatiemap en stel je graphics en audio in.',
+        ],
+        [
+          download(
+            'Windows installer',
+            '/downloads/0 a.d./Windows/0ad-0.28.0-win64.exe',
+            'Lokale 64-bit Windows-installer van 0 A.D. 0.28.0',
+          ),
+        ],
+      ),
+      platform(
+        'mac',
+        'download',
+        'Twee lokale macOS-dmg\'s: Apple Silicon en Intel.',
+        [
+          'Kies eerst de dmg die past bij jouw Mac: x86_64 voor Intel of aarch64 voor Apple Silicon.',
+          'Open daarna de juiste dmg en sleep 0 A.D. naar Programma\'s of je eigen gamesmap.',
+          'Start het spel vervolgens normaal op macOS en geef zo nodig toestemming in de beveiligingsinstellingen.',
+        ],
+        [
+          download(
+            'macOS Apple Silicon dmg',
+            '/downloads/0 a.d./Mac-Silicon/0ad-0.28.0-macos-aarch64.dmg',
+            'Lokale macOS-build voor Apple Silicon Macs',
+          ),
+          download(
+            'macOS Intel dmg',
+            '/downloads/0 a.d./Mac-intel/0ad-0.28.0-macos-x86_64.dmg',
+            'Lokale macOS-build voor Intel Macs',
+          ),
+        ],
+        'Gebruik de x86_64-build op Intel-Macs en de aarch64-build op Macs met een M-serie chip.',
+      ),
+      platform(
+        'linux',
+        'download',
+        'Lokale Linux-build als AppImage.',
+        [
+          'Download het AppImage-bestand en maak het uitvoerbaar als jouw distributie dat vereist.',
+          'Start daarna het AppImage direct vanuit je bestandsbeheer of terminal.',
+          'Controleer bij de eerste start je resolutie, audio en multiplayer-instellingen.',
+        ],
+        [
+          download(
+            'Linux AppImage',
+            '/downloads/0 a.d./Linux/0ad-0.28.0-x86_64.AppImage',
+            'Lokale Linux AppImage van 0 A.D. 0.28.0',
+          ),
+        ],
+      ),
+    ],
+    sources: ['0 A.D. officiele website', 'Wikipedia-pagina van 0 A.D.'],
+  },
+  {
     slug: 'among-us',
     title: 'Among Us',
     genreLabel: 'Social deduction / party',

@@ -1,47 +1,69 @@
 services:
+    traefik:
+        image: traefik:v3.4
+        container_name: traefik
+        command:
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --entrypoints.web.address=:80
+        ports:
+            - "80:80"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        restart: unless-stopped
+
     bracket-frontend:
         image: ghcr.io/evroon/bracket-frontend
         container_name: bracket-frontend
-        ports:
-            - "3000:3000"
         environment:
             NODE_ENV: "production"
-            VITE_API_BASE_URL: "http://localhost/bracket-api"
+            VITE_API_BASE_URL: "http://bracket-api.lan"
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.bracket-frontend.rule: Host(`bracket.lan`)
+            traefik.http.routers.bracket-frontend.entrypoints: web
+            traefik.http.services.bracket-frontend.loadbalancer.server.port: "3000"
         restart: unless-stopped
- 
+
     bracket-backend:
         image: ghcr.io/evroon/bracket-backend
         container_name: bracket-backend
-        ports:
-            - "8400:8400"
         environment:
             ENVIRONMENT: "DEVELOPMENT"
             PG_DSN: "postgresql://bracket_prod:bracket_prod@postgres:5432/bracket_prod"
-            CORS_ORIGINS: http://localhost,http://localhost:3000
+            CORS_ORIGINS: http://localhost,http://localhost:3000,http://localhost:8400,http://bracket-api.lan,http://bracket.lan
             JWT_SECRET: change_me
         volumes:
             - ./backend/static:/app/static
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.bracket-backend.rule: Host(`bracket-api.lan`)
+            traefik.http.routers.bracket-backend.entrypoints: web
+            traefik.http.services.bracket-backend.loadbalancer.server.port: "8400"
         restart: unless-stopped
         depends_on:
-          - postgres
- 
+            - postgres
+
     postgres:
         image: postgres
         restart: always
         environment:
-          POSTGRES_DB: bracket_prod
-          POSTGRES_USER: bracket_prod
-          POSTGRES_PASSWORD: bracket_prod
+            POSTGRES_DB: bracket_prod
+            POSTGRES_USER: bracket_prod
+            POSTGRES_PASSWORD: bracket_prod
         volumes:
-          - ./postgres:/var/lib/postgresql
+            - ./postgres:/var/lib/postgresql
 
     website-proxy:
-      build:
-        context: ./website
-      volumes:
-        - ${HOME}/personal/lan-voorbereiding:/usr/share/nginx/html/downloads:ro
-      ports:
-        - "80:80"
-      depends_on:
-        - bracket-frontend
-        - bracket-backend
+        build:
+            context: ./website
+        volumes:
+            - change/to/path/of/games:/usr/share/nginx/html/downloads:ro
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.website-proxy.rule: Host(`download.lan`) || Host(`downloads.lan`)
+            traefik.http.routers.website-proxy.entrypoints: web
+            traefik.http.services.website-proxy.loadbalancer.server.port: "80"
+        depends_on:
+            - bracket-frontend
+            - bracket-backend
