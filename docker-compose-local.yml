@@ -36,12 +36,12 @@ services:
           - ./postgres:/var/lib/postgresql
 
     website-proxy:
-      build:
-        context: ./website
-      volumes:
-        - ${HOME}/personal/lan-voorbereiding:/usr/share/nginx/html/downloads:ro
-      ports:
-        - "80:80"
-      depends_on:
-        - bracket-frontend
-        - bracket-backend
+        build:
+            context: ./website
+        volumes:
+            - ${HOME}/personal/lan-voorbereiding:/usr/share/nginx/html/downloads:ro
+        ports:
+            - "80:80"
+        depends_on:
+            - bracket-frontend
+            - bracket-backend
