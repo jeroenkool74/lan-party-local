@@ -88,6 +88,17 @@
   line-height: 1.15;
   letter-spacing: 0.01em;
   text-transform: none;
+}
+
+.surface-panel h2,
+.mario-panel h2 {
+  text-wrap: wrap;
+}
+
+.platform-card h3,
+.game-card h3,
+.empty-state h1,
+.empty-state h3 {
   text-wrap: balance;
 }
 
@@ -499,6 +510,13 @@
   background: #eef7ff;
 }
 
+.tournament-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
 .platform-pill__icon {
   width: 0.95rem;
   height: 0.95rem;
@@ -558,6 +576,51 @@
 
 .button--ghost {
   background: #fff;
+}
+
+.tournament-callout {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.92) 0 18px, transparent 20px),
+    radial-gradient(circle at 72% 16%, rgba(255, 255, 255, 0.88) 0 20px, transparent 22px),
+    linear-gradient(180deg, #fff8d7 0%, #fff2bf 100%);
+}
+
+.tournament-summary-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.tournament-summary-card p {
+  margin: 0;
+}
+
+.tournament-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: #4f6a92;
+  font-size: 0.94rem;
+}
+
+.tournament-frame-shell {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 4px solid var(--outline);
+  background: #fff;
+  box-shadow: 8px 8px 0 var(--outline);
+}
+
+.tournament-frame {
+  display: block;
+  width: 100%;
+  min-height: 72vh;
+  border: 0;
+  background: #fff;
+}
+
+.tournament-frame-note {
+  margin-top: 1rem;
 }
 
 .detail-hero {
@@ -663,6 +726,11 @@
   .hero-panel__actions,
   .detail-hero__actions,
   .game-card__actions {
+    flex-direction: column;
+  }
+
+  .tournament-meta,
+  .tournament-pill-row {
     flex-direction: column;
   }
 

@@ -93,10 +93,6 @@ export function GamePage() {
             <p className="section-kicker">Downloads & installatie</p>
             <h2>Alle lokale bestanden per platform</h2>
           </div>
-          <p className="surface-panel__note">
-            Elk bestand uit de downloadmap is hier gekoppeld aan het juiste platform of
-            aan de juiste uitlegkaart.
-          </p>
         </div>
 
         <div className="platform-grid">
@@ -106,20 +102,6 @@ export function GamePage() {
         </div>
       </section>
 
-      <section className="surface-panel surface-panel--compact">
-        <div className="surface-panel__header">
-          <div>
-            <p className="section-kicker">Bronnen</p>
-            <h2>Waar is de genre-info op gebaseerd?</h2>
-          </div>
-        </div>
-
-        <ul className="source-list">
-          {game.sources.map((source) => (
-            <li key={source}>{source}</li>
-          ))}
-        </ul>
-      </section>
     </div>
   )
 }

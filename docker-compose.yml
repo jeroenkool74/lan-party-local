@@ -12,13 +12,79 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
 
-    website-proxy:
-        image: "ghcr.io/jeroenkool74/lan-party-local-website:latest"
+    podiumforge-db:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: podiumforge
+            POSTGRES_USER: podiumforge
+            POSTGRES_PASSWORD: podiumforge
+        volumes:
+            - podiumforge-postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U podiumforge -d podiumforge"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+
+    podiumforge-mailpit:
+        image: axllent/mailpit:v1.24
+        restart: unless-stopped
+
+    podiumforge-api:
+        image: "${PODIUMFORGE_API_IMAGE:-ghcr.io/jeroenkool74/podiumforge-api:latest}"
         pull_policy: always
+        restart: unless-stopped
+        environment:
+            DATABASE_URL: postgresql+psycopg://podiumforge:podiumforge@podiumforge-db:5432/podiumforge
+            JWT_SECRET_KEY: "${PODIUMFORGE_JWT_SECRET_KEY:-change-me-local-secret}"
+            CORS_ORIGINS: '["http://download.lan","http://downloads.lan","http://home.lan","http://tournament.lan"]'
+            SEEDED_ADMIN_EMAIL: "${PODIUMFORGE_ADMIN_EMAIL:-admin@podiumforge.local}"
+            SEEDED_ADMIN_PASSWORD: "${PODIUMFORGE_ADMIN_PASSWORD:-admin1234}"
+            SEEDED_ADMIN_USERNAME: "${PODIUMFORGE_ADMIN_USERNAME:-admin}"
+            SMTP_HOST: "${PODIUMFORGE_SMTP_HOST:-podiumforge-mailpit}"
+            SMTP_PORT: "${PODIUMFORGE_SMTP_PORT:-1025}"
+            SMTP_FROM_EMAIL: "${PODIUMFORGE_SMTP_FROM_EMAIL:-no-reply@podiumforge.local}"
+            SMTP_FROM_NAME: "${PODIUMFORGE_SMTP_FROM_NAME:-PodiumForge}"
+            PASSWORD_RESET_URL_BASE: "${PODIUMFORGE_PASSWORD_RESET_URL_BASE:-http://tournament.lan/reset-password}"
+        depends_on:
+            podiumforge-db:
+                condition: service_healthy
+            podiumforge-mailpit:
+                condition: service_started
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+            interval: 10s
+            timeout: 5s
+            retries: 12
+            start_period: 10s
+
+    podiumforge-web:
+        image: "${PODIUMFORGE_WEB_IMAGE:-ghcr.io/jeroenkool74/podiumforge-web:latest}"
+        pull_policy: always
+        restart: unless-stopped
+        environment:
+            PODIUMFORGE_API_UPSTREAM: http://podiumforge-api:8000
+        depends_on:
+            podiumforge-api:
+                condition: service_healthy
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.podiumforge.rule: Host(`tournament.lan`)
+            traefik.http.routers.podiumforge.entrypoints: web
+            traefik.http.services.podiumforge.loadbalancer.server.port: "80"
+
+    website-proxy:
+        build:
+            context: ./website
         volumes:
             - "${DOWNLOADS_PATH:-./downloads}:/usr/share/nginx/html/downloads:ro"
+        restart: unless-stopped
         labels:
             traefik.enable: "true"
             traefik.http.routers.website-proxy.rule: Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)
             traefik.http.routers.website-proxy.entrypoints: web
             traefik.http.services.website-proxy.loadbalancer.server.port: "80"
+
+volumes:
+    podiumforge-postgres-data:

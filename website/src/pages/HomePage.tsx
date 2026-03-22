@@ -1,14 +1,20 @@
+import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { GameCard } from '../components/GameCard'
 import { MarioStage } from '../components/MarioStage'
 import { OsFilter } from '../components/OsFilter'
 import { games } from '../data/games'
+import {
+  getTournamentUrl,
+  useTournamentAvailabilityContext,
+} from '../features/tournament/availability'
 import type { OperatingSystemFilter } from '../types/catalog'
 import { hasPlatform, osLabels } from '../utils/catalog'
 
 export function HomePage() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<OperatingSystemFilter>('all')
+  const tournamentAvailability = useTournamentAvailabilityContext()
 
   const filteredGames = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -35,6 +41,7 @@ export function HomePage() {
 
   const activeLabel =
     activeFilter === 'all' ? 'de volledige bibliotheek' : osLabels[activeFilter]
+  const featuredTournaments = tournamentAvailability.tournaments.slice(0, 3)
 
   return (
     <div className="page-stack">
@@ -49,6 +56,50 @@ export function HomePage() {
           </p>
         </div>
       </section>
+
+      {tournamentAvailability.available ? (
+        <section className="surface-panel tournament-callout">
+          <div className="surface-panel__header">
+            <div>
+              <p className="section-kicker">Live tournament hub</p>
+              <h2>Brackets, standings en TV-mode staan klaar</h2>
+            </div>
+            <span className="badge badge--info">
+              {tournamentAvailability.tournaments.length} toernooi
+              {tournamentAvailability.tournaments.length === 1 ? '' : 'en'}
+            </span>
+          </div>
+
+          <p className="surface-panel__note">
+            Open de ingebouwde tournament-weergave om snel terug te springen naar de
+            downloads, of zet `tournament.lan` op een los scherm voor presentatie en
+            beheer.
+          </p>
+
+          <div className="tournament-pill-row">
+            {featuredTournaments.map((tournament) => (
+              <span key={tournament.slug} className="platform-pill platform-pill--info">
+                <strong>{tournament.name}</strong>
+                <small>{tournament.current_round_name ?? 'Klaar om te starten'}</small>
+              </span>
+            ))}
+          </div>
+
+          <div className="hero-panel__actions">
+            <Link className="button" to="/tournament">
+              Open in website
+            </Link>
+            <a
+              className="button button--ghost"
+              href={getTournamentUrl()}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open tournament.lan
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       <MarioStage />
 

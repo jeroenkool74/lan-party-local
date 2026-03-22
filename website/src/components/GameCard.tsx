@@ -67,11 +67,6 @@ export function GameCard({ game, activeFilter }: GameCardProps) {
         ))}
       </div>
 
-      <div className="game-card__meta">
-        <span>{game.platforms.length} platform{game.platforms.length === 1 ? '' : 's'}</span>
-        <span>{game.sources.length} bron{game.sources.length > 1 ? 'nen' : ''}</span>
-      </div>
-
       <div className="game-card__actions">
         {visitorDownloadPlatform && visitorDownloadLink ? (
           <a

@@ -106,7 +106,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['0 A.D. officiele website', 'Wikipedia-pagina van 0 A.D.'],
   },
   {
     slug: 'among-us',
@@ -138,7 +137,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Innersloth officiele gamepagina'],
   },
   {
     slug: 'battlefield-1942',
@@ -170,7 +168,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Wikipedia-pagina van Battlefield 1942'],
   },
   {
     slug: 'hedgewars',
@@ -219,7 +216,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Hedgewars about-pagina'],
   },
   {
     slug: 'minecraft',
@@ -240,6 +236,7 @@ export const games: GameEntry[] = [
         [
           'Installeer eerst Java 21 via de MSI als die nog niet op je systeem staat.',
           'Download daarna PolyMC-met-instance.zip en pak alles uit in een map waar je mag schrijven.',
+          'Lees de README.txt, die zich in de uitgepakte map bevindt.',
           'Start polymc.exe, controleer je Java-instellingen en open vervolgens de meegeleverde instance.',
         ],
         [
@@ -273,7 +270,7 @@ export const games: GameEntry[] = [
           download(
             'PolyMC zip',
             '/downloads/Minecraft/Mac/PolyMC.zip',
-            'Extra gecomprimeerde PolyMC-map voor macOS',
+            'Extra gecomprimeerde PolyMC-map voor macOS, voor het makkelijker installeren van de Minecraft instance',
           ),
           download(
             'Gedeelde instance zip',
@@ -311,7 +308,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Minecraft officiele about-pagina'],
   },
   {
     slug: 'openrct2',
@@ -331,8 +327,7 @@ export const games: GameEntry[] = [
         'Volledige Windows-bundel met installer, RCT2-iso en hulpmiddelen.',
         [
           'Download de Windows-zip en pak hem volledig uit.',
-          'Start OpenRCT2-v0.4.32-windows-installer-x64.exe vanuit het uitgepakte pakket.',
-          'Gebruik daarna de meegeleverde iso en PortableWinCDEmu als OpenRCT2 om RollerCoaster Tycoon 2-data vraagt.',
+          'Volg te instructies uit de README.txt, die zich in de uitgepakte map bevindt.',
         ],
         [
           download(
@@ -387,7 +382,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['OpenRCT2 projectsite', 'Wikipedia-pagina van OpenRCT2'],
   },
   {
     slug: 'openttd',
@@ -404,20 +398,18 @@ export const games: GameEntry[] = [
       platform(
         'windows',
         'download',
-        'Lokale ARM64-installer voor Windows.',
+        'Lokale installer voor Windows.',
         [
           'Controleer eerst of jouw Windows-systeem ARM64 gebruikt.',
-          'Download daarna de installer en doorloop de setup.',
-          'Bij de eerste start kun je eventueel ontbrekende vrije basisbestanden vanuit OpenTTD zelf toevoegen.',
+          'Download installer en doorloop de setup.',
         ],
         [
           download(
-            'Windows ARM64 installer',
-            '/downloads/OpenTTD/Windows/openttd-15.2-windows-arm64.exe',
-            'OpenTTD 15.2 installer voor Windows ARM64',
+            'Windows 64-bit installer',
+            '/downloads/OpenTTD/Windows/openttd-15.2-windows-win64.exe',
+            'OpenTTD 15.2 installer voor Windows',
           ),
         ],
-        'Voor Intel- en AMD-systemen moet je zelf een andere Windows-build regelen; in deze collectie staat alleen ARM64.',
       ),
       platform(
         'mac',
@@ -454,7 +446,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['OpenTTD about-pagina', 'OpenTTD releasepagina'],
   },
   {
     slug: 'trackmania-nations-forever',
@@ -491,7 +482,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Steam-pagina van TrackMania Nations Forever'],
   },
   {
     slug: 'unreal-tournament',
@@ -557,7 +547,6 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Wikipedia-pagina van Unreal Tournament'],
   },
   {
     slug: 'warsow',
@@ -623,6 +612,5 @@ export const games: GameEntry[] = [
         ],
       ),
     ],
-    sources: ['Wikipedia-pagina van Warsow'],
   },
 ]

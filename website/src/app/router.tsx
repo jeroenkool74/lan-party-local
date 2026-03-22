@@ -3,6 +3,7 @@ import { AppLayout } from './AppLayout'
 import { GamePage } from '../pages/GamePage'
 import { HomePage } from '../pages/HomePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { TournamentHubPage } from '../pages/TournamentHubPage'
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
       {
         path: 'games/:slug',
         element: <GamePage />,
+      },
+      {
+        path: 'tournament',
+        element: <TournamentHubPage />,
       },
       {
         path: '*',

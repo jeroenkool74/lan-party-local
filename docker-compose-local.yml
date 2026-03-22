@@ -1,47 +1,93 @@
 services:
-    bracket-frontend:
-        image: ghcr.io/evroon/bracket-frontend
-        container_name: bracket-frontend
+    traefik:
+        image: traefik:v3.4
+        container_name: traefik-local
+        command:
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --entrypoints.web.address=:80
         ports:
-            - "3000:3000"
-        environment:
-            NODE_ENV: "production"
-            VITE_API_BASE_URL: "http://localhost:8400"
-        restart: unless-stopped
- 
-    bracket-backend:
-        image: ghcr.io/evroon/bracket-backend
-        container_name: bracket-backend
-        ports:
-            - "8400:8400"
-        environment:
-            ENVIRONMENT: "DEVELOPMENT"
-            PG_DSN: "postgresql://bracket_prod:bracket_prod@postgres:5432/bracket_prod"
-            CORS_ORIGINS: http://localhost,http://localhost:3000,http://localhost:8400
-            JWT_SECRET: change_me
+            - "80:80"
         volumes:
-            - ./backend/static:/app/static
+            - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
+
+    podiumforge-db:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: podiumforge
+            POSTGRES_USER: podiumforge
+            POSTGRES_PASSWORD: podiumforge
+        volumes:
+            - podiumforge-postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U podiumforge -d podiumforge"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+
+    podiumforge-mailpit:
+        image: axllent/mailpit:v1.24
+        restart: unless-stopped
+        ports:
+            - "1025:1025"
+            - "8025:8025"
+
+    podiumforge-api:
+        image: "${PODIUMFORGE_API_IMAGE:-ghcr.io/jeroenkool74/podiumforge-api:latest}"
+        pull_policy: always
+        restart: unless-stopped
+        environment:
+            DATABASE_URL: postgresql+psycopg://podiumforge:podiumforge@podiumforge-db:5432/podiumforge
+            JWT_SECRET_KEY: "${PODIUMFORGE_JWT_SECRET_KEY:-change-me-local-secret}"
+            CORS_ORIGINS: '["http://localhost","http://download.lan","http://downloads.lan","http://home.lan","http://tournament.lan"]'
+            SEEDED_ADMIN_EMAIL: "${PODIUMFORGE_ADMIN_EMAIL:-admin@podiumforge.local}"
+            SEEDED_ADMIN_PASSWORD: "${PODIUMFORGE_ADMIN_PASSWORD:-admin1234}"
+            SEEDED_ADMIN_USERNAME: "${PODIUMFORGE_ADMIN_USERNAME:-admin}"
+            SMTP_HOST: podiumforge-mailpit
+            SMTP_PORT: "1025"
+            SMTP_FROM_EMAIL: "${PODIUMFORGE_SMTP_FROM_EMAIL:-no-reply@podiumforge.local}"
+            SMTP_FROM_NAME: "${PODIUMFORGE_SMTP_FROM_NAME:-PodiumForge}"
+            PASSWORD_RESET_URL_BASE: "${PODIUMFORGE_PASSWORD_RESET_URL_BASE:-http://tournament.lan/reset-password}"
         depends_on:
-          - postgres
- 
-    postgres:
-        image: postgres
-        restart: always
+            podiumforge-db:
+                condition: service_healthy
+            podiumforge-mailpit:
+                condition: service_started
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+            interval: 10s
+            timeout: 5s
+            retries: 12
+            start_period: 10s
+
+    podiumforge-web:
+        image: "${PODIUMFORGE_WEB_IMAGE:-ghcr.io/jeroenkool74/podiumforge-web:latest}"
+        pull_policy: always
+        restart: unless-stopped
         environment:
-          POSTGRES_DB: bracket_prod
-          POSTGRES_USER: bracket_prod
-          POSTGRES_PASSWORD: bracket_prod
-        volumes:
-          - ./postgres:/var/lib/postgresql
+            PODIUMFORGE_API_UPSTREAM: http://podiumforge-api:8000
+        depends_on:
+            podiumforge-api:
+                condition: service_healthy
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.podiumforge.rule: Host(`tournament.lan`)
+            traefik.http.routers.podiumforge.entrypoints: web
+            traefik.http.services.podiumforge.loadbalancer.server.port: "80"
 
     website-proxy:
         build:
             context: ./website
+        restart: unless-stopped
         volumes:
             - ${HOME}/personal/lan-voorbereiding:/usr/share/nginx/html/downloads:ro
-        ports:
-            - "80:80"
-        depends_on:
-            - bracket-frontend
-            - bracket-backend
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.website-proxy.rule: Host(`localhost`) || Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)
+            traefik.http.routers.website-proxy.entrypoints: web
+            traefik.http.services.website-proxy.loadbalancer.server.port: "80"
+
+volumes:
+    podiumforge-postgres-data:

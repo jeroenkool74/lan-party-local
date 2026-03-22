@@ -30,5 +30,4 @@ export interface GameEntry {
   keywords: string[]
   accent: string
   platforms: PlatformDetails[]
-  sources: string[]
 }
