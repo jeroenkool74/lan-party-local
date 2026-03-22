@@ -13,10 +13,10 @@ services:
         restart: unless-stopped
 
     website-proxy:
-        build:
-            context: ./website
+        image: "ghcr.io/jeroenkool74/lan-party-local-website:latest"
+        pull_policy: always
         volumes:
-            - change/to/path/of/games:/usr/share/nginx/html/downloads:ro
+            - "${DOWNLOADS_PATH:-./downloads}:/usr/share/nginx/html/downloads:ro"
         labels:
             traefik.enable: "true"
             traefik.http.routers.website-proxy.rule: Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)
