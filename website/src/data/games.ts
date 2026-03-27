@@ -268,6 +268,11 @@ export const games: GameEntry[] = [
             'Portable macOS-archief van PolyMC',
           ),
           download(
+            'Java installer for Mac',
+            '/downloads/Minecraft/Mac/java.pkg',
+            'Installer voor Java 25, nodig voor het opstarten van Minecraft'
+          ),
+          download(
             'PolyMC zip',
             '/downloads/Minecraft/Mac/PolyMC.zip',
             'Extra gecomprimeerde PolyMC-map voor macOS, voor het makkelijker installeren van de Minecraft instance',
