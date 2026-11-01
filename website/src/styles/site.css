@@ -738,3 +738,83 @@
     width: 100%;
   }
 }
+
+/* Instructievideo */
+.video-panel__notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 3px dashed var(--outline);
+  background: #fff8dd;
+  color: #4f6a92;
+}
+
+.video-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.video-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  border: 3px solid var(--outline);
+  background: var(--panel-soft);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 var(--outline);
+  cursor: pointer;
+}
+
+.video-tab small {
+  font-weight: 400;
+  color: #49658f;
+}
+
+.video-tab--active {
+  background: #fff5cb;
+}
+
+.video-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.video-panel__player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 3px solid var(--outline);
+  background: #0b1a33;
+  box-shadow: 5px 5px 0 var(--outline);
+}
+
+.video-speed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.video-speed__label {
+  margin-right: 0.25rem;
+  font-weight: 700;
+}
+
+.video-speed__option {
+  min-width: 3.4rem;
+  padding: 0.35rem 0.6rem;
+  border: 3px solid var(--outline);
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.video-speed__option--active {
+  background: var(--gold);
+}

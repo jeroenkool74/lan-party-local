@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { InstructionVideos } from '../components/InstructionVideos'
 import { PlatformDetail } from '../components/PlatformDetail'
 import { NotFoundPage } from './NotFoundPage'
 import {
@@ -53,6 +54,12 @@ export function GamePage() {
           <a className="button button--ghost" href="#downloads">
             Bekijk alle bestanden
           </a>
+
+          {game.videos?.length ? (
+            <a className="button button--ghost" href="#instructievideo">
+              Bekijk instructievideo
+            </a>
+          ) : null}
         </div>
       </section>
 
@@ -86,6 +93,14 @@ export function GamePage() {
           </div>
         </article>
       </section>
+
+      {game.videos?.length ? (
+        <InstructionVideos
+          key={game.slug}
+          videos={game.videos}
+          visitorOs={visitorOs}
+        />
+      ) : null}
 
       <section className="surface-panel" id="downloads">
         <div className="surface-panel__header">

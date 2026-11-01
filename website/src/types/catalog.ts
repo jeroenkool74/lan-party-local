@@ -20,6 +20,11 @@ export interface PlatformDetails {
   links: PlatformLink[]
 }
 
+export interface InstructionVideo {
+  os: OperatingSystem
+  href: string
+}
+
 export interface GameEntry {
   slug: string
   title: string
@@ -30,4 +35,5 @@ export interface GameEntry {
   keywords: string[]
   accent: string
   platforms: PlatformDetails[]
+  videos?: InstructionVideo[]
 }

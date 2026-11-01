@@ -1,4 +1,10 @@
-import type { GameEntry, OperatingSystem, PlatformDetails, PlatformLink } from '../types/catalog'
+import type {
+  GameEntry,
+  InstructionVideo,
+  OperatingSystem,
+  PlatformDetails,
+  PlatformLink,
+} from '../types/catalog'
 
 export const osChoices = [
   { id: 'all', label: 'Alles', blurb: 'Alle platforms' },
@@ -17,6 +23,8 @@ const download = (
   kind: 'download',
   description,
 })
+
+const video = (os: OperatingSystem, href: string): InstructionVideo => ({ os, href })
 
 const platform = (
   os: OperatingSystem,
@@ -47,6 +55,9 @@ export const games: GameEntry[] = [
       'De lokale collectie bevat een Windows-installer, een Linux AppImage en twee losse macOS-dmg\'s: een voor Intel en een voor Apple Silicon.',
     keywords: ['rts', 'strategy', 'ancient', 'base building', 'multiplayer'],
     accent: '#b97a36',
+    videos: [
+      video('windows', '/downloads/0 a.d./Windows/0ad-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -118,6 +129,9 @@ export const games: GameEntry[] = [
       'De lokale collectie bevat een Windows-zip met het spel en een map met extra runtime-bestanden voor systemen die nog iets missen.',
     keywords: ['party', 'deduction', 'crewmates', 'impostors', 'lan'],
     accent: '#f4c542',
+    videos: [
+      video('windows', '/downloads/Among Us/amongus-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -149,6 +163,9 @@ export const games: GameEntry[] = [
       'Het archief bevat niet alleen de game, maar ook extra drivers en runtime-pakketten voor oudere Windows-software.',
     keywords: ['shooter', 'ww2', 'battlefield', 'vehicles', 'multiplayer'],
     accent: '#c98c43',
+    videos: [
+      video('windows', '/downloads/Battlefield 1942/battlefield1942-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -180,6 +197,9 @@ export const games: GameEntry[] = [
       'Voor Hedgewars staan op deze site zowel een Windows-installer als een lokale macOS-dmg klaar.',
     keywords: ['artillery', 'strategy', 'worms-like', 'turn-based', 'hedgehogs'],
     accent: '#7fe07f',
+    videos: [
+      video('windows', '/downloads/Hedgewars/Windows/hedgewars-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -228,6 +248,9 @@ export const games: GameEntry[] = [
       'Deze collectie bevat losse launcherbestanden, een gedeelde instance-zip en op Windows ook een aparte Java-installer.',
     keywords: ['sandbox', 'survival', 'crafting', 'blocks', 'coop'],
     accent: '#6cc04a',
+    videos: [
+      video('windows', '/downloads/Minecraft/Windows/minecraft-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -331,6 +354,10 @@ export const games: GameEntry[] = [
       'Windows zit in een all-in-one zip; Linux en macOS gebruiken een losse OpenRCT2-build plus aparte RCT2-data.',
     keywords: ['management', 'sim', 'rollercoaster', 'park', 'building'],
     accent: '#5dc05d',
+    videos: [
+      video('windows', '/downloads/OpenRCT2/Windows/openrct2-windows-installeren.mp4'),
+      video('linux', '/downloads/OpenRCT2/Linux/openrct2-linux-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -405,6 +432,9 @@ export const games: GameEntry[] = [
       'Alle drie de platforms hebben hier een eigen lokaal pakket. Voor Windows is er een gewone 64-bit installer en een aparte ARM64-installer.',
     keywords: ['transport', 'management', 'trains', 'sim', 'network'],
     accent: '#4ac6ff',
+    videos: [
+      video('windows', '/downloads/OpenTTD/Windows/openttd-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -475,6 +505,9 @@ export const games: GameEntry[] = [
       'De lokale collectie bevat een Windows-zip met het spel en een _Redist map met extra runtime-installers voor systemen die nog iets missen.',
     keywords: ['sandbox', '2d', 'crafting', 'bosses', 'coop'],
     accent: '#5fa83c',
+    videos: [
+      video('windows', '/downloads/Terraria/terraria-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -506,6 +539,9 @@ export const games: GameEntry[] = [
       'De collectie bevat de hoofdinstaller en daarnaast nog een losse .NET 3.5-installer.',
     keywords: ['racing', 'arcade', 'time attack', 'stunts', 'trackmania'],
     accent: '#f8b132',
+    videos: [
+      video('windows', '/downloads/Trackmania/trackmania-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -542,6 +578,9 @@ export const games: GameEntry[] = [
       'De lokale game-download is Windows-only. Voor andere systemen zit er alleen een txt-bestand in de collectie met een verwijzing voor later.',
     keywords: ['arena shooter', 'fps', 'deathmatch', 'capture the flag', 'ut'],
     accent: '#2455d0',
+    videos: [
+      video('windows', '/downloads/Unreal tournament/unrealtournament-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
@@ -607,6 +646,9 @@ export const games: GameEntry[] = [
       'Voor Warsow zijn in de collectie drie lokale builds aanwezig: Windows, macOS en Linux.',
     keywords: ['arena', 'movement', 'fps', 'trickjump', 'warsow'],
     accent: '#2c7db9',
+    videos: [
+      video('windows', '/downloads/Warsow/Windows/warsow-windows-installeren.mp4'),
+    ],
     platforms: [
       platform(
         'windows',
