@@ -1,6 +1,6 @@
 services:
     traefik:
-        image: traefik:v3.4
+        image: traefik:v3.6
         container_name: traefik-local
         command:
             - --providers.docker=true
@@ -82,7 +82,7 @@ services:
             context: ./website
         restart: unless-stopped
         volumes:
-            - ${HOME}/personal/lan-voorbereiding:/usr/share/nginx/html/downloads:ro
+            - ../lan-voorbereiding:/usr/share/nginx/html/downloads:ro
         labels:
             traefik.enable: "true"
             traefik.http.routers.website-proxy.rule: Host(`localhost`) || Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)

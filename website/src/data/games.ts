@@ -453,6 +453,37 @@ export const games: GameEntry[] = [
     ],
   },
   {
+    slug: 'terraria',
+    title: 'Terraria',
+    genreLabel: 'Sandbox action-adventure',
+    highlight: 'Graven, bouwen en samen vechten tegen steeds gekkere bazen in een 2D-wereld.',
+    descriptionNl:
+      'Een 2D-sandboxspel waarin je de wereld omgraaft, grondstoffen verzamelt, uitrusting maakt en een basis bouwt. Samen met andere spelers verken je grotten en biomen en versla je steeds sterkere bazen.',
+    setupNote:
+      'De lokale collectie bevat een Windows-zip met het spel en een _Redist map met extra runtime-installers voor systemen die nog iets missen.',
+    keywords: ['sandbox', '2d', 'crafting', 'bosses', 'coop'],
+    accent: '#5fa83c',
+    platforms: [
+      platform(
+        'windows',
+        'download',
+        'Windows-zip met het spel en meegeleverde redistributables.',
+        [
+          'Download de zip en pak hem volledig uit in een korte map, bijvoorbeeld C:/Games/Terraria.',
+          'Open de map Terraria.v1.4.5.8, klik met rechts op Terraria.exe en kies Als administrator uitvoeren.',
+          'Krijg je een melding over ontbrekende dll\'s of start het spel niet, installeer dan alle programma\'s uit de meegeleverde _Redist map.',
+        ],
+        [
+          download(
+            'Terraria zip',
+            '/downloads/Terraria/Terraria.v1.4.5.8.zip',
+            'Complete Windows-zip van Terraria 1.4.5.8 met _Redist map',
+          ),
+        ],
+      ),
+    ],
+  },
+  {
     slug: 'trackmania-nations-forever',
     title: 'TrackMania Nations Forever',
     genreLabel: 'Arcade racing',
