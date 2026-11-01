@@ -255,8 +255,9 @@ export const games: GameEntry[] = [
       platform(
         'mac',
         'download',
-        'macOS-launcher, losse PolyMC-zip, gedeelde instance en de lokale README.',
+        'macOS-launcher, Java 21-installers, losse PolyMC-zip, gedeelde instance en de lokale README.',
         [
+          'Installeer eerst Java 21 als die nog niet op je Mac staat: kies de Apple Silicon-pkg voor een M-chip en de Intel-pkg voor een Intel-Mac (zie Apple-menu > Over deze Mac).',
           'Download eerst een launcherbestand voor macOS en pak dat uit of open het in de vorm die jij wilt gebruiken.',
           'Gebruik daarna Minecraft-instance_linux-mac.zip om de gedeelde instance binnen te halen.',
           'Volgens README.txt hoort de inhoud van de instance map op macOS in ~/Library/Application Support/PolyMC/instances/.',
@@ -268,9 +269,14 @@ export const games: GameEntry[] = [
             'Portable macOS-archief van PolyMC',
           ),
           download(
-            'Java installer for Mac',
-            '/downloads/Minecraft/Mac/java.pkg',
-            'Installer voor Java 25, nodig voor het opstarten van Minecraft'
+            'Java 21 installer (Apple Silicon)',
+            '/downloads/Minecraft/Mac/OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.13_9.pkg',
+            'Java 21 voor Macs met een M-chip (M1/M2/M3/M4), nodig om Minecraft te starten',
+          ),
+          download(
+            'Java 21 installer (Intel)',
+            '/downloads/Minecraft/Mac/OpenJDK21U-jdk_x64_mac_hotspot_21.0.13_9.pkg',
+            'Java 21 voor Macs met een Intel-processor, nodig om Minecraft te starten',
           ),
           download(
             'PolyMC zip',
@@ -332,7 +338,7 @@ export const games: GameEntry[] = [
         'Volledige Windows-bundel met installer, RCT2-iso en hulpmiddelen.',
         [
           'Download de Windows-zip en pak hem volledig uit.',
-          'Volg te instructies uit de README.txt, die zich in de uitgepakte map bevindt.',
+          'Volg de instructies uit de README.txt, die zich in de uitgepakte map bevindt.',
         ],
         [
           download(
@@ -354,7 +360,7 @@ export const games: GameEntry[] = [
         [
           download(
             'macOS build zip',
-            '/downloads/OpenRCT2/Mac/OpenRCT2-v0.4.32-macos-universal.zip',
+            '/downloads/OpenRCT2/Mac/OpenRCT2-v0.5.7-macos-universal.zip',
             'Lokale macOS-build van OpenRCT2',
           ),
           download(
@@ -376,7 +382,7 @@ export const games: GameEntry[] = [
         [
           download(
             'Linux AppImage',
-            '/downloads/OpenRCT2/Linux/OpenRCT2-v0.4.32-linux-x86_64.AppImage',
+            '/downloads/OpenRCT2/Linux/OpenRCT2-v0.5.7-linux-x86_64.AppImage',
             'Lokale Linux AppImage van OpenRCT2',
           ),
           download(
@@ -396,23 +402,29 @@ export const games: GameEntry[] = [
     descriptionNl:
       'Een transportsimulatie waarin je een netwerk bouwt met treinen, vrachtwagens, schepen en vliegtuigen. Je vervoert passagiers en goederen tussen steden en industrie om geld te verdienen en verder uit te breiden.',
     setupNote:
-      'Alle drie de platforms hebben hier een eigen lokaal pakket. Let op: de Windows-build in deze map is ARM64.',
+      'Alle drie de platforms hebben hier een eigen lokaal pakket. Voor Windows is er een gewone 64-bit installer en een aparte ARM64-installer.',
     keywords: ['transport', 'management', 'trains', 'sim', 'network'],
     accent: '#4ac6ff',
     platforms: [
       platform(
         'windows',
         'download',
-        'Lokale installer voor Windows.',
+        'Lokale installers voor Windows (64-bit en ARM64).',
         [
-          'Controleer eerst of jouw Windows-systeem ARM64 gebruikt.',
-          'Download installer en doorloop de setup.',
+          'Gebruik de 64-bit installer; dat is de juiste keuze voor vrijwel elke Windows-pc.',
+          'Alleen op een ARM-laptop (bijv. Snapdragon / Copilot+ pc) neem je de ARM64-installer. Dit zie je onder Instellingen > Systeem > Info > Systeemtype.',
+          'Download de installer en doorloop de setup.',
         ],
         [
           download(
             'Windows 64-bit installer',
-            '/downloads/OpenTTD/Windows/openttd-15.2-windows-win64.exe',
-            'OpenTTD 15.2 installer voor Windows',
+            '/downloads/OpenTTD/Windows/openttd-15.3-windows-win64.exe',
+            'OpenTTD 15.3 installer voor Windows (x64, standaard)',
+          ),
+          download(
+            'Windows ARM64 installer',
+            '/downloads/OpenTTD/Windows/openttd-15.3-windows-arm64.exe',
+            'OpenTTD 15.3 installer voor Windows op ARM',
           ),
         ],
       ),
@@ -428,8 +440,8 @@ export const games: GameEntry[] = [
         [
           download(
             'macOS dmg',
-            '/downloads/OpenTTD/Mac/openttd-15.2-macos-universal.dmg',
-            'Lokale macOS-build van OpenTTD 15.2',
+            '/downloads/OpenTTD/Mac/openttd-15.3-macos-universal.dmg',
+            'Lokale macOS-build van OpenTTD 15.3',
           ),
         ],
       ),
@@ -445,8 +457,8 @@ export const games: GameEntry[] = [
         [
           download(
             'Linux tar.xz',
-            '/downloads/OpenTTD/Linux/openttd-15.2-linux-generic-amd64.tar.xz',
-            'Lokale Linux generic build van OpenTTD 15.2',
+            '/downloads/OpenTTD/Linux/openttd-15.3-linux-generic-amd64.tar.xz',
+            'Lokale Linux generic build van OpenTTD 15.3',
           ),
         ],
       ),
