@@ -86,19 +86,24 @@ const obsPlatforms: PlatformDetails[] = [
 const recordingSteps = [
   'Installeer OBS Studio met een van de bestanden hieronder.',
   'Klik onder "Bronnen" op + en kies "Schermopname" (macOS: "macOS-schermopname", Linux: "Schermopname (PipeWire)").',
-  'Wil je praten tijdens de video? Controleer dan onder "Audiomixer" of je microfoon beweegt als je praat.',
-  'Klik op "Opname starten", doe de installatie rustig stap voor stap en klik op "Opname stoppen" als je klaar bent.',
-  'Je vindt de video via Bestand > Opnames weergeven.',
+  'Neem op in 1920×1080 als mp4. Geluid is niet nodig, want de video heeft geen geluid.',
+  'Sluit vooraf alles wat niet in beeld hoort: privé-tabbladen, chats en meldingen.',
+  'Klik op "Opname starten" en laat alles zien: van de downloadpagina tot en met het hoofdmenu van het spel.',
+  'Doe alles rustig en wacht na elke klik ongeveer 1 seconde. Wachten en laden is geen probleem, dat wordt versneld.',
+  'Ging er iets mis of nam je een omweg? Neem dan liever opnieuw op.',
+  'Klik op "Opname stoppen". Je vindt het bestand via Bestand > Opnames weergeven.',
 ]
 
-const mailSubject = 'Instructievideo LAN-party'
+const mailSubject = 'Opname instructievideo LAN-party'
 const mailBody = [
   'Hoi Jeroen,',
   '',
   'Spel:',
   'Besturingssysteem (Windows / macOS Intel / macOS Apple Silicon / Linux):',
-  'Wat heb ik anders of beter gedaan:',
-  'Link naar de video (bijv. WeTransfer):',
+  'Gebruikte downloadknop(pen) op de site:',
+  'Extra tools nodig (bijv. 7-Zip, of: niets):',
+  'Bijzonderheden (meldingen, gekozen opties en waarom):',
+  'Link naar de opname (bijv. WeTransfer):',
   '',
 ].join('\n')
 const mailHref = `mailto:${contactEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`
@@ -115,8 +120,9 @@ export function RecordVideoPage() {
         <h1>Kan een instructievideo beter?</h1>
         <p className="detail-hero__lead">
           Vind je een video onduidelijk, mist er een video voor jouw systeem of weet je
-          een handigere manier? Neem dan zelf een schermopname op met OBS Studio en
-          stuur hem met een korte uitleg op. Dan zet ik hem op de site.
+          een handigere manier? Neem dan zelf de installatie op met OBS Studio en stuur
+          de opname op. Meer hoef je niet te doen: ik maak er een instructievideo in
+          dezelfde stijl van en zet die op de site.
         </p>
 
         <div className="detail-hero__actions">
@@ -124,7 +130,7 @@ export function RecordVideoPage() {
             Download OBS Studio
           </a>
           <a className="button button--ghost" href={mailHref}>
-            Mail {contactEmail}
+            Opname mailen
           </a>
         </div>
       </section>
@@ -149,10 +155,15 @@ export function RecordVideoPage() {
           <ul className="step-list">
             <li>om welk spel het gaat;</li>
             <li>op welk systeem je het hebt opgenomen (Windows, macOS Intel, macOS Apple Silicon of Linux);</li>
-            <li>wat je anders of beter hebt gedaan dan in de huidige video.</li>
+            <li>welke downloadknop(pen) op de site je hebt gebruikt;</li>
+            <li>of je extra tools nodig had, bijvoorbeeld 7-Zip;</li>
+            <li>bijzonderheden: een melding die je wegklikt, een optie die je kiest, en waarom.</li>
           </ul>
           <p>
-            Is de video te groot om te mailen? Stuur hem dan via een dienst als
+            Wat al duidelijk in de opname te zien is, hoef je niet te beschrijven.
+          </p>
+          <p>
+            Is de opname te groot om te mailen? Stuur hem dan via een dienst als
             WeTransfer en zet de link in je mail.
           </p>
         </article>
