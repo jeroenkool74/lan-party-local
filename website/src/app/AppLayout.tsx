@@ -38,6 +38,10 @@ export function AppLayout() {
         <footer className="site-footer">
           <div className="site-footer__inner">
             <p>Veel pleziek op de LAN-party!</p>
+            <p className="site-footer__aside">
+              Kan een instructievideo beter?{' '}
+              <Link to="/video-insturen">Neem zelf een video op</Link>.
+            </p>
           </div>
         </footer>
       </div>

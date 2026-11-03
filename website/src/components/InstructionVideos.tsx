@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { osMeta, toHref } from '../utils/catalog'
 import type { InstructionVideo, OperatingSystem } from '../types/catalog'
 
@@ -123,6 +124,11 @@ export function InstructionVideos({ videos, visitorOs }: InstructionVideosProps)
           </div>
         </div>
       ) : null}
+
+      <p className="video-panel__feedback">
+        Vind je deze video niet duidelijk of kan het beter?{' '}
+        <Link to="/video-insturen">Neem zelf een video op</Link>.
+      </p>
     </section>
   )
 }

@@ -818,3 +818,18 @@
 .video-speed__option--active {
   background: var(--gold);
 }
+
+.video-panel__feedback,
+.site-footer__aside {
+  font-size: 0.85rem;
+  color: #49658f;
+}
+
+.video-panel__feedback {
+  margin: 1rem 0 0;
+}
+
+.video-panel__feedback a,
+.site-footer__aside a {
+  color: inherit;
+}
