@@ -77,10 +77,43 @@ services:
             traefik.http.routers.podiumforge.entrypoints: web
             traefik.http.services.podiumforge.loadbalancer.server.port: "80"
 
+    # --- Chat (IRC) -----------------------------------------------------------
+    # ngircd is de IRC-server. Native clients (HexChat, Halloy, ...) verbinden
+    # direct op poort 6667; de website praat via irc-websocket.
+    # Chat op de website uitzetten: zet CHAT_ENABLED=false (zie website-proxy).
+    # Wil je de server zelf ook niet draaien, comment dan deze twee services uit.
+    ngircd:
+        image: lscr.io/linuxserver/ngircd:latest
+        restart: unless-stopped
+        environment:
+            PUID: "${PUID:-1000}"
+            PGID: "${PGID:-1000}"
+            TZ: Europe/Amsterdam
+        volumes:
+            - ./irc/ngircd.conf:/config/ngircd.conf
+            - ./irc/ngircd.motd:/config/ngircd.motd
+        ports:
+            - "6667:6667"
+
+    irc-websocket:
+        build:
+            context: ./irc/websocket-bridge
+        restart: unless-stopped
+        depends_on:
+            - ngircd
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.irc-websocket.rule: (Host(`localhost`) || Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)) && PathPrefix(`/irc-ws`)
+            traefik.http.routers.irc-websocket.entrypoints: web
+            traefik.http.services.irc-websocket.loadbalancer.server.port: "8080"
+
     website-proxy:
         build:
             context: ./website
         restart: unless-stopped
+        environment:
+            # Zet op "false" om de chat op de website te verbergen.
+            CHAT_ENABLED: "${CHAT_ENABLED:-true}"
         volumes:
             - ../lan-voorbereiding:/usr/share/nginx/html/downloads:ro
         labels:

@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { InstructionVideos } from '../components/InstructionVideos'
 import { PlatformDetail } from '../components/PlatformDetail'
+import { useChat } from '../features/chat/chatContext'
 import { NotFoundPage } from './NotFoundPage'
 import {
   getGameBySlug,
@@ -15,6 +16,7 @@ import {
 
 export function GamePage() {
   const { slug } = useParams()
+  const chat = useChat()
   const game = slug ? getGameBySlug(slug) : undefined
 
   if (!game) {
@@ -46,7 +48,11 @@ export function GamePage() {
 
         <div className="detail-hero__actions">
           {visitorDownload ? (
-            <a className="button" href={toHref(visitorDownload.href)} download="">
+            <a
+              className="button"
+              href={toHref(visitorDownload.href)}
+              download=""
+            >
               Download
             </a>
           ) : null}
@@ -59,6 +65,18 @@ export function GamePage() {
             <a className="button button--ghost" href="#instructievideo">
               Bekijk instructievideo
             </a>
+          ) : null}
+
+          {chat?.enabled ? (
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={() =>
+                chat.open({ channel: '#hulp', draft: `[${game.title}] ` })
+              }
+            >
+              Vraag stellen in de chat
+            </button>
           ) : null}
         </div>
       </section>
@@ -116,7 +134,6 @@ export function GamePage() {
           ))}
         </div>
       </section>
-
     </div>
   )
 }
