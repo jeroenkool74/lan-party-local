@@ -78,34 +78,27 @@ services:
             traefik.http.services.podiumforge.loadbalancer.server.port: "80"
 
     # --- Chat (IRC) -----------------------------------------------------------
-    # ngircd is de IRC-server. Native clients (HexChat, Halloy, ...) verbinden
-    # direct op poort 6667; de website praat via irc-websocket.
+    # Ergo is de IRC-server, inclusief websockets en chatgeschiedenis.
+    # Native clients (HexChat, Halloy, ...) verbinden direct op poort 6667;
+    # de website verbindt via traefik op /irc-ws.
     # Chat op de website uitzetten: zet CHAT_ENABLED=false (zie website-proxy).
-    # Wil je de server zelf ook niet draaien, comment dan deze twee services uit.
-    ngircd:
-        image: lscr.io/linuxserver/ngircd:latest
+    # Wil je de server zelf ook niet draaien, comment dan deze service uit.
+    # Geschiedenis wissen: docker compose stop ergo && docker compose rm -f ergo
+    #   && docker volume rm <project>_ergo-data  (NIET "down -v": dat wist ook andere volumes)
+    ergo:
+        image: ghcr.io/ergochat/ergo:stable
         restart: unless-stopped
-        environment:
-            PUID: "${PUID:-1000}"
-            PGID: "${PGID:-1000}"
-            TZ: Europe/Amsterdam
         volumes:
-            - ./irc/ngircd.conf:/config/ngircd.conf
-            - ./irc/ngircd.motd:/config/ngircd.motd
+            - ergo-data:/ircd
+            - ./irc/ircd.yaml:/ircd/ircd.yaml:ro
+            - ./irc/ircd.motd:/ircd/ircd.motd:ro
         ports:
             - "6667:6667"
-
-    irc-websocket:
-        build:
-            context: ./irc/websocket-bridge
-        restart: unless-stopped
-        depends_on:
-            - ngircd
         labels:
             traefik.enable: "true"
             traefik.http.routers.irc-websocket.rule: (Host(`localhost`) || Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)) && PathPrefix(`/irc-ws`)
             traefik.http.routers.irc-websocket.entrypoints: web
-            traefik.http.services.irc-websocket.loadbalancer.server.port: "8080"
+            traefik.http.services.irc-websocket.loadbalancer.server.port: "8097"
 
     website-proxy:
         build:
@@ -124,3 +117,4 @@ services:
 
 volumes:
     podiumforge-postgres-data:
+    ergo-data:

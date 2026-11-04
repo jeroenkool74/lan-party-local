@@ -1,7 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react'
 import { Link } from 'react-router-dom'
 import { useChat } from './chatContext'
-import { SERVER_TAB, type ChatMessage } from './ircSession'
+import { CHANNEL_DESCRIPTIONS, SERVER_TAB, sanitizeNick, type ChatMessage } from './ircSession'
 
 const timeFormat = new Intl.DateTimeFormat('nl-NL', { hour: '2-digit', minute: '2-digit' })
 
@@ -14,12 +22,27 @@ function nickColor(nick: string) {
   return `hsl(${Math.abs(hash) % 360} 65% 35%)`
 }
 
+function messageClass(message: ChatMessage, modifier = '') {
+  return [
+    'chat-message',
+    modifier,
+    message.mention && !message.history ? 'chat-message--mention' : '',
+    message.history ? 'chat-message--history' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function MessageLine({ message }: { message: ChatMessage }) {
-  const time = <time className="chat-message__time">{timeFormat.format(message.time)}</time>
+  const time = (
+    <time className="chat-message__time" dateTime={new Date(message.time).toISOString()}>
+      {timeFormat.format(message.time)}
+    </time>
+  )
 
   if (message.kind === 'message' || message.kind === 'notice') {
     return (
-      <li className={`chat-message${message.mention ? ' chat-message--mention' : ''}`}>
+      <li className={messageClass(message)}>
         {time}
         {message.nick ? (
           <strong className="chat-message__nick" style={{ color: nickColor(message.nick) }}>
@@ -33,9 +56,7 @@ function MessageLine({ message }: { message: ChatMessage }) {
 
   if (message.kind === 'action') {
     return (
-      <li
-        className={`chat-message chat-message--action${message.mention ? ' chat-message--mention' : ''}`}
-      >
+      <li className={messageClass(message, 'chat-message--action')}>
         {time}
         <span className="chat-message__text">
           * <strong style={{ color: nickColor(message.nick ?? '') }}>{message.nick}</strong>{' '}
@@ -88,17 +109,89 @@ function NickForm() {
   )
 }
 
+/** Klein formulier om je naam te wijzigen terwijl je verbonden bent. */
+function RenameForm({ onDone }: { onDone: () => void }) {
+  const chat = useChat()!
+  const currentNick = chat.state.nick
+  const [value, setValue] = useState(currentNick)
+  const [requested, setRequested] = useState<string | null>(null)
+
+  // Klaar zodra de server de nieuwe naam heeft bevestigd.
+  useEffect(() => {
+    if (requested && currentNick === requested) {
+      onDone()
+    }
+  }, [requested, currentNick, onDone])
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    const nick = sanitizeNick(value)
+    if (nick === currentNick) {
+      onDone()
+      return
+    }
+    setRequested(nick || null)
+    chat.session.changeNick(value, { quiet: true })
+  }
+
+  function handleCancel() {
+    chat.session.clearNickError()
+    onDone()
+  }
+
+  const preview = sanitizeNick(value)
+  const error = chat.state.nickError
+
+  return (
+    <form className="chat-rename" onSubmit={handleSubmit}>
+      <label htmlFor="chat-rename-input">Nieuwe naam</label>
+      <div className="chat-rename__row">
+        <input
+          id="chat-rename-input"
+          autoFocus
+          maxLength={20}
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value)
+            chat.session.clearNickError()
+          }}
+          onKeyDown={(event) => event.key === 'Escape' && handleCancel()}
+        />
+        <button className="button" type="submit" disabled={!preview}>
+          Opslaan
+        </button>
+        <button className="chat-icon-button" type="button" onClick={handleCancel}>
+          Annuleren
+        </button>
+      </div>
+      {error ? (
+        <p className="chat-rename__error" role="alert">
+          {error}
+        </p>
+      ) : preview && preview !== value.trim() ? (
+        <p className="chat-rename__hint">Wordt: {preview}</p>
+      ) : null}
+    </form>
+  )
+}
+
 export function ChatWidget() {
   const chat = useChat()
   const listRef = useRef<HTMLUListElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [showUsers, setShowUsers] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const stopRenaming = useCallback(() => setRenaming(false), [])
 
   const state = chat?.state
   const activeKey = state?.active.toLowerCase() ?? ''
   const conversation = state?.conversations[activeKey]
   const messages = activeKey === SERVER_TAB ? state?.serverMessages : conversation?.messages
   const lastMessageId = messages?.at(-1)?.id
+  let lastHistoryIndex = -1
+  messages?.forEach((message, index) => {
+    if (message.history) lastHistoryIndex = index
+  })
 
   useEffect(() => {
     const list = listRef.current
@@ -159,7 +252,16 @@ export function ChatWidget() {
         <div>
           <strong>LAN chat</strong>
           <small>
-            {state.status === 'connected' && `Verbonden als ${state.nick}`}
+            {state.status === 'connected' && (
+              <button
+                type="button"
+                className="chat-rename-trigger"
+                onClick={() => setRenaming((value) => !value)}
+                title="Naam wijzigen"
+              >
+                Verbonden als <strong>{state.nick}</strong> <span aria-hidden="true">✎</span>
+              </button>
+            )}
             {state.status === 'connecting' && 'Verbinden...'}
             {state.status === 'reconnecting' && 'Opnieuw verbinden...'}
             {state.status === 'idle' && 'Niet verbonden'}
@@ -186,6 +288,8 @@ export function ChatWidget() {
           </button>
         </div>
       </header>
+
+      {renaming && isConnected ? <RenameForm onDone={stopRenaming} /> : null}
 
       {showNickForm ? (
         <NickForm />
@@ -225,7 +329,9 @@ export function ChatWidget() {
           {conversation ? (
             <div className="chat-topic">
               <span>
-                {conversation.topic || (conversation.isChannel ? 'Geen onderwerp' : 'Privégesprek')}
+                {conversation.topic ||
+                  CHANNEL_DESCRIPTIONS[conversation.name.toLowerCase()] ||
+                  (conversation.isChannel ? 'Geen onderwerp' : 'Privégesprek')}
               </span>
               {conversation.isChannel ? (
                 <button
@@ -245,7 +351,16 @@ export function ChatWidget() {
                 <li className="chat-message chat-message--event">{state.error}</li>
               ) : null}
               {messages?.length ? (
-                messages.map((message) => <MessageLine key={message.id} message={message} />)
+                messages.map((message, index) => (
+                  <Fragment key={message.id}>
+                    <MessageLine message={message} />
+                    {index === lastHistoryIndex ? (
+                      <li className="chat-divider">
+                        <span>eerdere berichten · nu live</span>
+                      </li>
+                    ) : null}
+                  </Fragment>
+                ))
               ) : (
                 <li className="chat-message chat-message--event">
                   {isConnected

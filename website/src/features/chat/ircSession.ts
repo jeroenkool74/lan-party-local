@@ -1,4 +1,6 @@
-// Minimale IRC-client die via een websocket (websockify-bridge) met ngircd praat.
+// Minimale IRC-client die via een websocket met de Ergo IRC-server praat.
+// Ergo stuurt bij het joinen de laatste berichten opnieuw (autoreplay-on-join);
+// die herkennen we aan hun server-time en tonen we als geschiedenis.
 // De state is immutable zodat React hem via useSyncExternalStore kan volgen.
 
 export type ChatStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting'
@@ -14,6 +16,8 @@ export interface ChatMessage {
   text: string
   self?: boolean
   mention?: boolean
+  /** Bericht van vóór het moment dat je het kanaal binnenkwam. */
+  history?: boolean
 }
 
 export interface ChatConversation {
@@ -30,6 +34,10 @@ export interface ChatConversation {
 export interface IrcState {
   status: ChatStatus
   nick: string
+  /** De naam die de gebruiker zelf koos (nick kan tijdelijk afwijken, bv. "Jeroen42"). */
+  preferredNick: string
+  /** Foutmelding van de laatste naamswijziging (bv. naam al in gebruik). */
+  nickError: string | null
   /** Gesorteerd op volgorde van openen; key = lowercase naam. */
   conversations: Record<string, ChatConversation>
   order: string[]
@@ -41,12 +49,23 @@ export interface IrcState {
 export const SERVER_TAB = '*server'
 export const DEFAULT_CHANNELS = ['#lan', '#hulp']
 
+/** Omschrijving per vast kanaal, getoond als het kanaal (nog) geen topic heeft. */
+export const CHANNEL_DESCRIPTIONS: Record<string, string> = {
+  '#lan': 'Algemene chat, teams zoeken en uitdagingen.',
+  '#hulp': 'Vragen over het installeren of spelen van de games.',
+}
+
+/** IRCv3-capabilities die we aanvragen als de server ze ondersteunt. */
+const WANTED_CAPS = ['server-time', 'message-tags']
+
 const MAX_MESSAGES = 500
 const NICK_MAX_LENGTH = 20
 
 const initialState: IrcState = {
   status: 'idle',
   nick: '',
+  preferredNick: '',
+  nickError: null,
   conversations: {},
   order: [],
   active: DEFAULT_CHANNELS[0],
@@ -79,6 +98,7 @@ const keyOf = (name: string) => name.toLowerCase()
 const stripPrefix = (nick: string) => nick.replace(/^[~&@%+]+/, '')
 
 interface ParsedLine {
+  tags: Record<string, string>
   prefix: string
   nick: string
   command: string
@@ -87,8 +107,14 @@ interface ParsedLine {
 
 function parseLine(line: string): ParsedLine {
   let rest = line
+  const tags: Record<string, string> = {}
   if (rest.startsWith('@')) {
-    rest = rest.slice(rest.indexOf(' ') + 1)
+    const space = rest.indexOf(' ')
+    for (const tag of rest.slice(1, space).split(';')) {
+      const [key, value = ''] = tag.split('=')
+      tags[key] = value
+    }
+    rest = rest.slice(space + 1)
   }
 
   let prefix = ''
@@ -117,7 +143,7 @@ function parseLine(line: string): ParsedLine {
 
   const command = (params.shift() ?? '').toUpperCase()
   const nick = prefix.split('!')[0]
-  return { prefix, nick, command, params }
+  return { tags, prefix, nick, command, params }
 }
 
 function getWebSocketUrl() {
@@ -129,14 +155,18 @@ export class IrcSession {
   private state: IrcState = initialState
   private listeners = new Set<() => void>()
   private socket: WebSocket | null = null
-  private decoder = new TextDecoder()
-  private encoder = new TextEncoder()
-  private buffer = ''
+  private availableCaps: string[] = []
+  /** Tijdstip (server-tijd) waarop we een kanaal binnenkwamen; key = lowercase naam. */
+  private joinTimes: Record<string, number> = {}
   private wantedNick = ''
   private registered = false
   private shouldReconnect = false
   private reconnectAttempts = 0
   private reconnectTimer: number | undefined
+  private reclaimTimer: number | undefined
+  private reclaiming = false
+  /** Naamswijziging via het formulier: fouten alleen daar tonen, niet ook in het kanaal. */
+  private quietNickChange = false
   private pendingNames: Record<string, string[]> = {}
   private visible = false
 
@@ -159,6 +189,7 @@ export class IrcSession {
     if (!this.wantedNick) {
       return
     }
+    this.setState((state) => ({ ...state, preferredNick: this.wantedNick }))
     this.shouldReconnect = true
     this.reconnectAttempts = 0
     this.openSocket()
@@ -167,6 +198,7 @@ export class IrcSession {
   disconnect() {
     this.shouldReconnect = false
     window.clearTimeout(this.reconnectTimer)
+    window.clearTimeout(this.reclaimTimer)
     if (this.socket) {
       this.sendRaw('QUIT :Tot later!')
       this.socket.close()
@@ -207,6 +239,41 @@ export class IrcSession {
     this.removeConversation(key)
   }
 
+  /**
+   * Vraag een nieuwe naam aan. De naam wordt pas bewaard als de server hem accepteert
+   * (NICK-bericht terug); anders komt er een melding in `nickError`.
+   * Met `quiet` (het naamformulier) komt die melding niet óók als regel in het kanaal.
+   */
+  changeNick(input: string, { quiet = false } = {}) {
+    const nick = sanitizeNick(input)
+    this.quietNickChange = quiet
+    if (!nick) {
+      this.reportNickError('Kies een naam met letters of cijfers.')
+      return
+    }
+    if (nick === this.state.nick || !this.registered) {
+      this.setState((state) => ({ ...state, nickError: null }))
+      return
+    }
+    window.clearTimeout(this.reclaimTimer)
+    this.reclaiming = false
+    this.setState((state) => ({ ...state, nickError: null }))
+    this.sendRaw(`NICK ${nick}`)
+  }
+
+  private reportNickError(error: string) {
+    this.setState((state) => ({ ...state, nickError: error }))
+    if (!this.quietNickChange) {
+      this.addMessage(this.state.active, makeMessage('system', error))
+    }
+  }
+
+  clearNickError() {
+    if (this.state.nickError) {
+      this.setState((state) => ({ ...state, nickError: null }))
+    }
+  }
+
   /** Verwerkt invoer uit het tekstvak, inclusief simpele /commando's. */
   submit(target: string, input: string) {
     const text = input.trim()
@@ -229,7 +296,7 @@ export class IrcSession {
     window.clearTimeout(this.reconnectTimer)
     this.socket?.close()
     this.registered = false
-    this.buffer = ''
+    this.availableCaps = []
 
     this.setState((state) => ({
       ...state,
@@ -239,28 +306,25 @@ export class IrcSession {
 
     let socket: WebSocket
     try {
-      socket = new WebSocket(getWebSocketUrl(), ['binary'])
+      // text.ircv3.net: elk websocket-frame is precies één IRC-regel (UTF-8 tekst).
+      socket = new WebSocket(getWebSocketUrl(), ['text.ircv3.net'])
     } catch {
       this.scheduleReconnect()
       return
     }
-    socket.binaryType = 'arraybuffer'
     this.socket = socket
 
     socket.onopen = () => {
+      this.sendRaw('CAP LS 302')
       this.sendRaw(`NICK ${this.wantedNick}`)
       this.sendRaw(`USER ${this.wantedNick.toLowerCase().slice(0, 10) || 'web'} 0 * :LAN webchat`)
     }
 
     socket.onmessage = (event) => {
-      const chunk =
-        typeof event.data === 'string'
-          ? event.data
-          : this.decoder.decode(event.data as ArrayBuffer, { stream: true })
-      this.buffer += chunk
-      const lines = this.buffer.split(/\r?\n/)
-      this.buffer = lines.pop() ?? ''
-      lines.filter(Boolean).forEach((line) => this.handleLine(line))
+      String(event.data)
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .forEach((line) => this.handleLine(line))
     }
 
     socket.onclose = () => {
@@ -288,9 +352,27 @@ export class IrcSession {
     this.reconnectTimer = window.setTimeout(() => this.openSocket(), delay)
   }
 
+  /**
+   * Was je naam bezet (meestal door je eigen vorige verbinding die nog niet weg is),
+   * probeer hem dan na een paar seconden één keer terug te krijgen.
+   */
+  private scheduleNickReclaim(currentNick: string) {
+    window.clearTimeout(this.reclaimTimer)
+    const preferred = this.state.preferredNick
+    if (!preferred || keyOf(preferred) === keyOf(currentNick)) {
+      return
+    }
+    this.reclaimTimer = window.setTimeout(() => {
+      if (this.registered && keyOf(this.state.nick) !== keyOf(preferred)) {
+        this.reclaiming = true
+        this.sendRaw(`NICK ${preferred}`)
+      }
+    }, 5000)
+  }
+
   private sendRaw(line: string) {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(this.encoder.encode(`${line.replace(/[\r\n]/g, ' ')}\r\n`))
+      this.socket.send(line.replace(/[\r\n]/g, ' '))
     }
   }
 
@@ -321,11 +403,9 @@ export class IrcSession {
       case 'me':
         if (rest) this.sendMessage(target, rest, true)
         return
-      case 'nick': {
-        const nick = sanitizeNick(rest)
-        if (nick) this.sendRaw(`NICK ${nick}`)
+      case 'nick':
+        if (rest) this.changeNick(rest)
         return
-      }
       case 'join':
       case 'j': {
         const channel = rest.split(' ')[0]
@@ -366,11 +446,29 @@ export class IrcSession {
   // ---------------------------------------------------------------- protocol
 
   private handleLine(line: string) {
-    const { nick, command, params } = parseLine(line)
+    const { tags, nick, command, params } = parseLine(line)
     const me = this.state.nick || this.wantedNick
     const isMe = (name: string) => keyOf(name) === keyOf(me)
+    const serverTime = tags.time ? Date.parse(tags.time) || Date.now() : Date.now()
 
     switch (command) {
+      case 'CAP': {
+        const subcommand = params[1]
+        if (subcommand === 'LS') {
+          // Een lange lijst komt in meerdere regels; '*' betekent "er komt nog meer".
+          const isLastLine = params[2] !== '*'
+          const caps = (isLastLine ? params[2] : params[3]) ?? ''
+          this.availableCaps.push(...caps.split(' ').map((cap) => cap.split('=')[0]))
+          if (isLastLine) {
+            const request = WANTED_CAPS.filter((cap) => this.availableCaps.includes(cap))
+            this.sendRaw(request.length ? `CAP REQ :${request.join(' ')}` : 'CAP END')
+          }
+        } else if (subcommand === 'ACK' || subcommand === 'NAK') {
+          this.sendRaw('CAP END')
+        }
+        return
+      }
+
       case 'PING':
         this.sendRaw(`PONG :${params[0] ?? ''}`)
         return
@@ -385,6 +483,14 @@ export class IrcSession {
           nick: confirmedNick,
           error: null,
         }))
+        this.scheduleNickReclaim(confirmedNick)
+        // Na een reconnect stuurt de server de geschiedenis opnieuw: oude berichten weg,
+        // anders staan ze er dubbel in.
+        this.state.order.forEach((key) =>
+          this.updateConversation(key, (conversation) =>
+            conversation.isChannel ? { ...conversation, messages: [] } : conversation,
+          ),
+        )
         const existingChannels = this.state.order
           .map((key) => this.state.conversations[key])
           .filter((conversation) => conversation.isChannel)
@@ -400,11 +506,10 @@ export class IrcSession {
           const base = this.wantedNick.slice(0, NICK_MAX_LENGTH - 2)
           this.wantedNick = `${base}${Math.floor(Math.random() * 90 + 10)}`
           this.sendRaw(`NICK ${this.wantedNick}`)
+        } else if (this.reclaiming) {
+          this.reclaiming = false
         } else {
-          this.addMessage(
-            this.state.active,
-            makeMessage('system', `De naam ${params[1]} is al in gebruik.`),
-          )
+          this.reportNickError(`De naam ${params[1]} is al in gebruik.`)
         }
         return
       }
@@ -414,14 +519,20 @@ export class IrcSession {
           this.wantedNick = `Gast${Math.floor(Math.random() * 900 + 100)}`
           this.sendRaw(`NICK ${this.wantedNick}`)
         } else {
-          this.addMessage(this.state.active, makeMessage('system', `Ongeldige naam: ${params[1]}`))
+          this.reportNickError(`Ongeldige naam: ${params[1]}`)
         }
         return
 
       case 'NICK': {
         const newNick = params[0]
         if (isMe(nick)) {
-          this.setState((state) => ({ ...state, nick: newNick }))
+          this.reclaiming = false
+          this.setState((state) => ({
+            ...state,
+            nick: newNick,
+            preferredNick: newNick,
+            nickError: null,
+          }))
         }
         this.forEachConversationWith(nick, (key) => {
           this.updateConversation(key, (conversation) => ({
@@ -436,6 +547,7 @@ export class IrcSession {
       case 'JOIN': {
         const channel = params[0]
         if (isMe(nick)) {
+          this.joinTimes[keyOf(channel)] = serverTime
           this.ensureConversation(channel)
         } else {
           this.updateConversation(keyOf(channel), (conversation) => ({
@@ -510,9 +622,14 @@ export class IrcSession {
         }
 
         const conversation = isChannelName(target) ? target : nick
+        const joinedAt = this.joinTimes[keyOf(conversation)]
+        const history = isChannelName(target) && joinedAt !== undefined && serverTime < joinedAt
         const mention =
           !isChannelName(target) || new RegExp(`\\b${escapeRegExp(me)}\\b`, 'i').test(text)
-        this.addMessage(conversation, makeMessage(kind, text, { nick, mention }))
+        this.addMessage(
+          conversation,
+          makeMessage(kind, text, { nick, mention, history, self: isMe(nick), time: serverTime }),
+        )
         return
       }
 
@@ -666,7 +783,7 @@ export class IrcSession {
 
     const isRead = this.visible && keyOf(this.state.active) === key
     const countsAsUnread =
-      !message.self && (message.kind === 'message' || message.kind === 'action')
+      !message.self && !message.history && (message.kind === 'message' || message.kind === 'action')
     if (!isRead && countsAsUnread) {
       this.updateConversation(key, (conversation) => ({
         ...conversation,

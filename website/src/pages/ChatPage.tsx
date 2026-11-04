@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { NotFoundPage } from './NotFoundPage'
 import { useChat } from '../features/chat/chatContext'
-import { DEFAULT_CHANNELS } from '../features/chat/ircSession'
+import { CHANNEL_DESCRIPTIONS, DEFAULT_CHANNELS } from '../features/chat/ircSession'
 import { getVisitorOs, osMeta } from '../utils/catalog'
 import type { OperatingSystem } from '../types/catalog'
 
@@ -108,16 +108,19 @@ channels = [${DEFAULT_CHANNELS.map((channel) => `"${channel}"`).join(', ')}]`
           <p className="section-kicker">Kanalen</p>
           <h2>Waar praat je over?</h2>
           <ul className="step-list">
-            <li>
-              <strong>#lan</strong>: algemene chat, teams zoeken en uitdagingen.
-            </li>
-            <li>
-              <strong>#hulp</strong>: vragen over het installeren of spelen van de games.
-            </li>
+            {DEFAULT_CHANNELS.map((channel) => (
+              <li key={channel}>
+                <strong>{channel}</strong>: {CHANNEL_DESCRIPTIONS[channel]}
+              </li>
+            ))}
             <li>
               Eigen kanaal nodig voor je team? Typ <code>/join #teamnaam</code>.
             </li>
           </ul>
+          <p className="surface-panel__note">
+            Kom je later binnen? Je ziet dan de laatste 50 berichten van een kanaal, ook in HexChat
+            of Halloy. Privéberichten worden niet bewaard.
+          </p>
         </article>
 
         <article className="surface-panel surface-panel--compact">

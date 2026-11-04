@@ -37,7 +37,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { chatEnabled } = useSiteConfig()
   const [session] = useState(() => new IrcSession())
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot)
-  const [nick, setNick] = useState(() => readStorage(NICK_STORAGE_KEY))
+  const [storedNick] = useState(() => readStorage(NICK_STORAGE_KEY))
+  const nick = state.preferredNick || storedNick
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState('')
 
@@ -53,16 +54,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => session.disconnect()
   }, [chatEnabled, session])
 
+  // Bij herladen/weggaan de verbinding netjes sluiten, zodat je naam direct weer vrij is.
+  useEffect(() => {
+    const handlePageHide = () => session.disconnect()
+    window.addEventListener('pagehide', handlePageHide)
+    return () => window.removeEventListener('pagehide', handlePageHide)
+  }, [session])
+
   useEffect(() => {
     session.setVisible(isOpen)
   }, [isOpen, session])
 
-  // Nick bijwerken als de server hem verandert (bv. door /nick of een dubbele naam).
+  // De zelfgekozen naam onthouden (niet een tijdelijke uitwijknaam zoals "Jeroen42").
   useEffect(() => {
-    if (state.nick) {
-      writeStorage(NICK_STORAGE_KEY, state.nick)
+    if (state.preferredNick) {
+      writeStorage(NICK_STORAGE_KEY, state.preferredNick)
     }
-  }, [state.nick])
+  }, [state.preferredNick])
 
   const connect = useCallback(
     (input: string) => {
@@ -70,7 +78,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (!cleanNick) {
         return
       }
-      setNick(cleanNick)
       writeStorage(NICK_STORAGE_KEY, cleanNick)
       writeStorage(AUTOCONNECT_STORAGE_KEY, 'true')
       session.connect(cleanNick)

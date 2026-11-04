@@ -1,0 +1,123 @@
+# Ergo IRC-server voor de LAN-party chat.
+# Gemount als /ircd/ircd.yaml (zie docker-compose). Alle opties met uitleg:
+# https://github.com/ergochat/ergo/blob/stable/default.yaml
+
+network:
+    name: LAN-Party
+
+server:
+    name: irc.lan
+    listeners:
+        # Native IRC-clients (HexChat, Halloy, ...), zonder TLS: het is een LAN.
+        ":6667": {}
+        # Webchat op de website, via traefik op /irc-ws.
+        ":8097":
+            websocket: true
+    websockets:
+        # Leeg = alle origins toestaan.
+        allowed-origins: []
+    casemapping: "ascii"
+    enforce-utf8: true
+    lookup-hostnames: false
+    check-ident: false
+    coerce-ident: '~u'
+    motd: ircd.motd
+    motd-formatting: false
+    idle-timeouts:
+        registration: 60s
+        ping: 1m30s
+        disconnect: 2m30s
+    max-sendq: 96k
+    compatibility:
+        force-trailing: true
+        send-unprefixed-sasl: true
+    # Alle webchatters komen via traefik binnen met hetzelfde IP-adres,
+    # dus geen limieten per IP.
+    ip-limits:
+        count: false
+        throttle: false
+    ip-cloaking:
+        enabled: false
+
+accounts:
+    # Geen accounts/NickServ: iedereen kiest gewoon een naam.
+    authentication-enabled: false
+    registration:
+        enabled: false
+    nick-reservation:
+        enabled: false
+    multiclient:
+        enabled: false
+    default-user-modes: ""
+
+channels:
+    default-modes: +nt
+    max-channels-per-client: 100
+    registration:
+        enabled: false
+
+logging:
+    -
+        method: stderr
+        type: "* -userinput -useroutput"
+        level: info
+
+lock-file: "ircd.lock"
+
+datastore:
+    path: ircd.db
+    autoupgrade: true
+    # Chatgeschiedenis wordt in SQLite bewaard, zodat hij een herstart overleeft.
+    sqlite:
+        enabled: true
+        database-path: "history.db"
+        busy-timeout: 5s
+        max-conns: 1
+
+languages:
+    enabled: true
+    default: en
+    path: /ircd-bin/languages
+
+limits:
+    nicklen: 20
+    identlen: 20
+    realnamelen: 150
+    channellen: 64
+    awaylen: 390
+    kicklen: 390
+    topiclen: 390
+    monitor-entries: 100
+    whowas-entries: 100
+    chan-list-modes: 100
+    registration-messages: 1024
+    multiline:
+        max-bytes: 4096
+        max-lines: 100
+
+fakelag:
+    enabled: true
+    window: 1s
+    burst-limit: 5
+    messages-per-window: 2
+    cooldown: 2s
+
+history:
+    enabled: true
+    channel-length: 1000
+    client-length: 256
+    autoresize-window: 3d
+    # Bij het joinen van een kanaal krijg je de laatste 50 berichten te zien,
+    # ook in native clients.
+    autoreplay-on-join: 50
+    chathistory-maxmessages: 1000
+    znc-maxmessages: 1000
+    restrictions:
+        expire-time: 1w
+        query-cutoff: 'none'
+    persistent:
+        enabled: true
+        unregistered-channels: true
+        registered-channels: "opt-out"
+        # Privéberichten worden niet bewaard.
+        direct-messages: "disabled"
