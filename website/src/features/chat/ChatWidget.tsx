@@ -187,7 +187,7 @@ export function ChatWidget() {
   const activeKey = state?.active.toLowerCase() ?? ''
   const conversation = state?.conversations[activeKey]
   const messages = activeKey === SERVER_TAB ? state?.serverMessages : conversation?.messages
-  const lastMessageId = messages?.at(-1)?.id
+  const lastMessageId = messages?.length ? messages[messages.length - 1].id : undefined
   let lastHistoryIndex = -1
   messages?.forEach((message, index) => {
     if (message.history) lastHistoryIndex = index
@@ -199,6 +199,33 @@ export function ChatWidget() {
       list.scrollTop = list.scrollHeight
     }
   }, [lastMessageId, activeKey, chat?.isOpen])
+
+  // Op een telefoon is de chat schermvullend: pagina erachter niet laten scrollen en de
+  // hoogte laten meebewegen met het schermtoetsenbord (visualViewport).
+  const isOpen = Boolean(chat?.isOpen && chat.enabled)
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+    const root = document.documentElement
+    const viewport = window.visualViewport
+    const update = () => {
+      if (!viewport) return
+      root.style.setProperty('--chat-viewport-height', `${viewport.height}px`)
+      root.style.setProperty('--chat-viewport-top', `${viewport.offsetTop}px`)
+    }
+    root.classList.add('chat-open')
+    update()
+    viewport?.addEventListener('resize', update)
+    viewport?.addEventListener('scroll', update)
+    return () => {
+      root.classList.remove('chat-open')
+      root.style.removeProperty('--chat-viewport-height')
+      root.style.removeProperty('--chat-viewport-top')
+      viewport?.removeEventListener('resize', update)
+      viewport?.removeEventListener('scroll', update)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (chat?.isOpen && chat.draft) {

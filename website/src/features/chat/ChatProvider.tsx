@@ -55,11 +55,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [chatEnabled, session])
 
   // Bij herladen/weggaan de verbinding netjes sluiten, zodat je naam direct weer vrij is.
+  // Op mobiel wordt een pagina bij het wisselen van app vaak "bevroren" (bfcache) in plaats
+  // van gesloten. Bij terugkomen (pageshow) of weer zichtbaar worden opnieuw verbinden.
   useEffect(() => {
+    if (!chatEnabled) {
+      return
+    }
     const handlePageHide = () => session.disconnect()
+    const handlePageShow = (event: PageTransitionEvent) => {
+      const storedNick = readStorage(NICK_STORAGE_KEY)
+      if (event.persisted && storedNick && readStorage(AUTOCONNECT_STORAGE_KEY) === 'true') {
+        session.connect(storedNick)
+      }
+    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        session.reconnectNow()
+      }
+    }
     window.addEventListener('pagehide', handlePageHide)
-    return () => window.removeEventListener('pagehide', handlePageHide)
-  }, [session])
+    window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide)
+      window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [chatEnabled, session])
 
   useEffect(() => {
     session.setVisible(isOpen)

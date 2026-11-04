@@ -207,6 +207,19 @@ export class IrcSession {
     this.setState((state) => ({ ...state, status: 'idle' }))
   }
 
+  /**
+   * Direct opnieuw verbinden als de verbinding weg is maar wel gewenst.
+   * Mobiele browsers verbreken websockets als de app op de achtergrond staat.
+   */
+  reconnectNow() {
+    const socketAlive =
+      this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING
+    if (this.shouldReconnect && !socketAlive) {
+      this.reconnectAttempts = 0
+      this.openSocket()
+    }
+  }
+
   setVisible(visible: boolean) {
     this.visible = visible
     if (visible) {
