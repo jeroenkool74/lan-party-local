@@ -66,7 +66,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "${OPENRCT2_CPUS:-4}"
+          cpus: "${OPENRCT2_CPUS:-2}"
           memory: ${OPENRCT2_MEMORY:-3g}
     logging: *logging
 
