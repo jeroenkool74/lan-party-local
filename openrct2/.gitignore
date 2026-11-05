@@ -1,0 +1,7 @@
+.env
+backups/
+park/*
+!park/README.md
+dashboard/node_modules/
+dashboard/web/dist/
+tests/e2e/.work/

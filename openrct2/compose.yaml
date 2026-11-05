@@ -1,0 +1,115 @@
+# OpenRCT2 free-for-all LAN server + live statistics dashboard.
+#   docker compose up -d --build
+# Configuration: copy .env.example to .env (optional, every value has a default).
+name: lan-openrct2
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  openrct2:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      args:
+        OPENRCT2_VERSION: ${OPENRCT2_VERSION:-0.5.7}
+    image: lan-openrct2-server:${OPENRCT2_VERSION:-0.5.7}
+    container_name: ${NAME_PREFIX:-openrct2}-server
+    hostname: openrct2
+    restart: unless-stopped
+    init: true                      # OpenRCT2 has no signal handlers; tini + the entrypoint stop it cleanly
+    stop_grace_period: 40s          # time for the shutdown save
+    ports:
+      - "${OPENRCT2_BIND:-0.0.0.0}:${OPENRCT2_PORT:-11753}:11753/tcp"
+    environment:
+      TZ: ${TZ:-Europe/Amsterdam}
+      SERVER_NAME: "${SERVER_NAME:-LAN Tycoon}"
+      SERVER_DESCRIPTION: "${SERVER_DESCRIPTION:-Free-for-all - build your own rides, earn your own money}"
+      SERVER_GREETING: "${SERVER_GREETING:-Welcome! Say !help in chat. Rides you build are yours.}"
+      SERVER_PASSWORD: ${SERVER_PASSWORD:-}
+      MAX_PLAYERS: ${MAX_PLAYERS:-16}
+      INITIAL_PARK: ${INITIAL_PARK:-}
+      PAUSE_WHEN_EMPTY: ${PAUSE_WHEN_EMPTY:-true}
+      KNOWN_KEYS_ONLY: ${KNOWN_KEYS_ONLY:-false}
+      AUTOSAVE_FREQUENCY: ${AUTOSAVE_FREQUENCY:-1}
+      AUTOSAVE_AMOUNT: ${AUTOSAVE_AMOUNT:-24}
+      ARCHIVE_INTERVAL_MINUTES: ${ARCHIVE_INTERVAL_MINUTES:-60}
+      ARCHIVE_KEEP: ${ARCHIVE_KEEP:-48}
+      SAFETY_SAVE_SECONDS: ${SAFETY_SAVE_SECONDS:-60}
+      ENABLED_PLUGINS: ${ENABLED_PLUGINS:-ffa-ownership,ffa-individual-economy,ffa-anti-grief,ffa-rate-limit,ffa-disable-track-designs,ffa-cheat-toggle,lan-stats}
+      CHEAT_DISABLE_BREAKDOWNS: ${CHEAT_DISABLE_BREAKDOWNS:-true}
+      CHEAT_DISABLE_VANDALISM: ${CHEAT_DISABLE_VANDALISM:-true}
+      CHEAT_DISABLE_RIDE_VALUE_AGING: ${CHEAT_DISABLE_RIDE_VALUE_AGING:-true}
+      CHEAT_DISABLE_PLANT_AGING: ${CHEAT_DISABLE_PLANT_AGING:-true}
+      CHEAT_DISABLE_LITTERING: ${CHEAT_DISABLE_LITTERING:-true}
+      CHEAT_MOW_GRASS: ${CHEAT_MOW_GRASS:-true}
+      CHEAT_UNLOCK_ALL_RIDES: ${CHEAT_UNLOCK_ALL_RIDES:-true}
+      STATS_HOST: dashboard
+      STATS_PORT: "9000"
+      STATS_INTERVAL_MS: ${STATS_INTERVAL_MS:-10000}
+    volumes:
+      - openrct2-data:/data
+      - ${PARK_PATH:-./park}:/park:ro
+    networks: [game]
+    healthcheck:
+      # Listening on 11753 (0x2DE9) without opening a connection to the game.
+      test: ["CMD-SHELL", "test -f /tmp/openrct2.ready && grep -qiE ':2DE9 [0-9A-F]+:[0-9A-F]+ 0A' /proc/net/tcp /proc/net/tcp6"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 3m
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        limits:
+          cpus: "${OPENRCT2_CPUS:-4}"
+          memory: ${OPENRCT2_MEMORY:-3g}
+    logging: *logging
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    image: lan-openrct2-dashboard:latest
+    container_name: ${NAME_PREFIX:-openrct2}-dashboard
+    hostname: dashboard
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${DASHBOARD_BIND:-0.0.0.0}:${DASHBOARD_PORT:-8080}:8080/tcp"
+      # The ingest port 9000 is intentionally NOT published: only the game server can reach it.
+    environment:
+      TZ: ${TZ:-Europe/Amsterdam}
+      DASHBOARD_TITLE: ${DASHBOARD_TITLE:-LAN Tycoon}
+      CURRENCY_SYMBOL: ${CURRENCY_SYMBOL:-€}
+      STATS_INTERVAL_MS: ${STATS_INTERVAL_MS:-10000}
+      HISTORY_SAMPLE_SECONDS: ${HISTORY_SAMPLE_SECONDS:-60}
+      GAME_HOST: openrct2
+      GAME_PORT: "11753"
+    volumes:
+      - dashboard-data:/data
+    networks: [game]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256m
+    logging: *logging
+
+networks:
+  game:
+    name: ${VOLUME_PREFIX:-lan-openrct2}
+
+volumes:
+  openrct2-data:
+    name: ${VOLUME_PREFIX:-lan-openrct2}-data
+  dashboard-data:
+    name: ${VOLUME_PREFIX:-lan-openrct2}-dashboard-data
