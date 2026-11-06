@@ -2,6 +2,7 @@
 #   website    http://localhost        (and download.lan / home.lan)
 #   dashboard  http://rct2.localhost   or http://localhost:8081 (and rct2.lan)
 #   game       localhost:11753
+#   IRC        localhost:6667 (website chat via /irc-ws)
 #   docker compose -f docker-compose-local.yml up -d --build
 # Settings: copy .env.example to .env (optional, every value has a default).
 # Everything that is mounted lives in ../lan-data (downloads/ and openrct2-park/).
@@ -26,9 +27,35 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
 
+    # --- Chat (IRC) -----------------------------------------------------------
+    # Ergo is de IRC-server, inclusief websockets en chatgeschiedenis.
+    # Native clients (HexChat, Halloy, ...) verbinden direct op poort 6667;
+    # de website verbindt via traefik op /irc-ws.
+    # Chat op de website uitzetten: zet CHAT_ENABLED=false (zie website-proxy).
+    # Wil je de server zelf ook niet draaien, comment dan deze service uit.
+    # Geschiedenis wissen: docker compose stop ergo && docker compose rm -f ergo
+    #   && docker volume rm <project>_ergo-data  (NIET "down -v": dat wist ook andere volumes)
+    ergo:
+        image: ghcr.io/ergochat/ergo:stable
+        restart: unless-stopped
+        volumes:
+            - ergo-data:/ircd
+            - ./irc/ircd.yaml:/ircd/ircd.yaml:ro
+            - ./irc/ircd.motd:/ircd/ircd.motd:ro
+        ports:
+            - "6667:6667"
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.irc-websocket.rule: (Host(`localhost`) || Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)) && PathPrefix(`/irc-ws`)
+            traefik.http.routers.irc-websocket.entrypoints: web
+            traefik.http.services.irc-websocket.loadbalancer.server.port: "8097"
+
     website-proxy:
         build:
             context: ./website
+        environment:
+            # Zet op "false" om de chat op de website te verbergen.
+            CHAT_ENABLED: "${CHAT_ENABLED:-true}"
         volumes:
             - "../lan-data/downloads:/usr/share/nginx/html/downloads:ro"
         restart: unless-stopped
@@ -151,3 +178,4 @@ volumes:
         name: ${VOLUME_PREFIX:-lan-openrct2}-data
     dashboard-data:
         name: ${VOLUME_PREFIX:-lan-openrct2}-dashboard-data
+    ergo-data:

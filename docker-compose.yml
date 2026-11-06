@@ -1,5 +1,6 @@
-# LAN party stack: traefik, the website (download.lan / home.lan), the OpenRCT2
-# free-for-all server (TCP 11753) and its live dashboard (rct2.lan).
+# LAN party stack: traefik, the website (download.lan / home.lan) with IRC chat
+# (ergo, TCP 6667), the OpenRCT2 free-for-all server (TCP 11753) and its live
+# dashboard (rct2.lan).
 #   docker compose up -d --build
 # For running on your own machine via localhost use docker-compose-local.yml.
 # Settings: copy .env.example to .env (optional, every value has a default).
@@ -25,9 +26,35 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
 
+    # --- Chat (IRC) -----------------------------------------------------------
+    # Ergo is de IRC-server, inclusief websockets en chatgeschiedenis.
+    # Native clients (HexChat, Halloy, ...) verbinden direct op poort 6667;
+    # de website verbindt via traefik op /irc-ws.
+    # Chat op de website uitzetten: zet CHAT_ENABLED=false (zie website-proxy).
+    # Wil je de server zelf ook niet draaien, comment dan deze service uit.
+    # Geschiedenis wissen: docker compose stop ergo && docker compose rm -f ergo
+    #   && docker volume rm <project>_ergo-data  (NIET "down -v": dat wist ook andere volumes)
+    ergo:
+        image: ghcr.io/ergochat/ergo:stable
+        restart: unless-stopped
+        volumes:
+            - ergo-data:/ircd
+            - ./irc/ircd.yaml:/ircd/ircd.yaml:ro
+            - ./irc/ircd.motd:/ircd/ircd.motd:ro
+        ports:
+            - "6667:6667"
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.irc-websocket.rule: (Host(`download.lan`) || Host(`downloads.lan`) || Host(`home.lan`)) && PathPrefix(`/irc-ws`)
+            traefik.http.routers.irc-websocket.entrypoints: web
+            traefik.http.services.irc-websocket.loadbalancer.server.port: "8097"
+
     website-proxy:
         build:
             context: ./website
+        environment:
+            # Zet op "false" om de chat op de website te verbergen.
+            CHAT_ENABLED: "${CHAT_ENABLED:-true}"
         volumes:
             - "${DOWNLOADS_PATH:-../lan-data/downloads}:/usr/share/nginx/html/downloads:ro"
         restart: unless-stopped
@@ -148,3 +175,4 @@ volumes:
         name: ${VOLUME_PREFIX:-lan-openrct2}-data
     dashboard-data:
         name: ${VOLUME_PREFIX:-lan-openrct2}-dashboard-data
+    ergo-data:

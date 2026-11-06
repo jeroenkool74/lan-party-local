@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
+import { ChatPage } from '../pages/ChatPage'
 import { GamePage } from '../pages/GamePage'
 import { HomePage } from '../pages/HomePage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
       {
         path: 'video-insturen',
         element: <RecordVideoPage />,
+      },
+      {
+        path: 'chat',
+        element: <ChatPage />,
       },
       {
         path: 'tournament',
