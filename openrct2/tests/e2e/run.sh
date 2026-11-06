@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # End-to-end test with REAL OpenRCT2 clients (Linux AppImage under Xvfb).
 #
-# Runs an isolated copy of the stack (project lan-openrct2-e2e, own volumes,
+# Runs an isolated copy of the openrct2 + dashboard services from
+# ../docker-compose-local.yml (project lan-openrct2-e2e, own volumes and network,
 # ports bound to 127.0.0.1) and drives three players (Alice, Bob, Jeroen)
 # through the multiplayer, ownership, admin, pause, reconnect and persistence
 # scenarios. Real game data is never touched.
@@ -20,11 +21,13 @@ ROOT="$PWD"
 W="$ROOT/tests/e2e/.work"
 CLIENT_IMAGE=lan-openrct2-e2e-client
 
-export COMPOSE_PROJECT_NAME=lan-openrct2-e2e NAME_PREFIX=openrct2-e2e VOLUME_PREFIX=lan-openrct2-e2e
+export COMPOSE_PROJECT_NAME=lan-openrct2-e2e NAME_PREFIX=openrct2-e2e VOLUME_PREFIX=lan-openrct2-e2e NETWORK_NAME=lan-openrct2-e2e-web
 export OPENRCT2_BIND=127.0.0.1 OPENRCT2_PORT=21753 DASHBOARD_BIND=127.0.0.1 DASHBOARD_PORT=28080
 export STATS_INTERVAL_MS=3000 HISTORY_SAMPLE_SECONDS=10 PARK_PATH="$W/park" SAFETY_SAVE_SECONDS=60
 API="http://127.0.0.1:$DASHBOARD_PORT"
 NET=lan-openrct2-e2e
+SERVICES=(openrct2 dashboard)
+dc() { docker compose -f "$ROOT/../docker-compose-local.yml" "$@"; }
 
 PASS=0; FAIL=0; RESULTS=()
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -46,7 +49,7 @@ wait_until() { # timeout_s jq-expression-on-state
 prepare() {
     command -v curl >/dev/null && command -v unzip >/dev/null && command -v sha1sum >/dev/null || die "curl, unzip and sha1sum are required"
     log "building the stack images"
-    docker compose build -q >/dev/null || die "docker compose build failed"
+    dc build -q "${SERVICES[@]}" >/dev/null || die "docker compose build failed"
     if ! command -v jq >/dev/null; then
         # no jq on the host: use the one inside the server image via a helper container
         docker rm -f e2e-jq >/dev/null 2>&1 || true
@@ -134,7 +137,7 @@ admin() { ./scripts/admin.sh "$@"; }
 cleanup() {
     for c in alice bob jeroen; do stop_client "$c"; done
     docker rm -f e2e-jq >/dev/null 2>&1 || true
-    if [[ -z "${KEEP:-}" ]]; then docker compose down -v >/dev/null 2>&1 || true; fi
+    if [[ -z "${KEEP:-}" ]]; then dc down -v >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
 
@@ -142,9 +145,9 @@ trap cleanup EXIT
 prepare
 
 log "Infrastructure"
-check "compose.yaml is valid" docker compose config -q
-docker compose down -v >/dev/null 2>&1 || true
-docker compose up -d --build >/dev/null 2>&1 || die "docker compose up failed"
+check "docker-compose-local.yml is valid" dc config -q
+dc down -v >/dev/null 2>&1 || true
+dc up -d --build "${SERVICES[@]}" >/dev/null 2>&1 || die "docker compose up failed"
 wait_healthy() { local end=$((SECONDS + 180)); while (( SECONDS < end )); do
     [[ "$(docker inspect -f '{{.State.Health.Status}}' openrct2-e2e-server 2>/dev/null)" == healthy && "$(docker inspect -f '{{.State.Health.Status}}' openrct2-e2e-dashboard 2>/dev/null)" == healthy ]] && return 0; sleep 2; done; return 1; }
 check "both containers start and become healthy" wait_healthy
@@ -203,7 +206,7 @@ key_hash="$(basename "$keyfile" .pubkey)"; key_hash="${key_hash#Jeroen-}"
 check "public key hash = SHA-1 of the client's public key file" test "$(sha1sum < "$keyfile" | cut -d' ' -f1)" == "$key_hash"
 check "admin.sh players lists Jeroen with that hash" bash -c "./scripts/admin.sh players | grep -q '$key_hash'"
 check "admin.sh grant Jeroen succeeds" admin grant Jeroen
-check "users.json maps the key hash to the Admin group" bash -c "docker compose exec -T openrct2 jq -e '.[] | select(.hash == \"$key_hash\" and .groupId == 0)' /data/users.json"
+check "users.json maps the key hash to the Admin group" bash -c "dc exec -T openrct2 jq -e '.[] | select(.hash == \"$key_hash\" and .groupId == 0)' /data/users.json"
 check "admin.sh refuses an unknown name" bash -c '! ./scripts/admin.sh grant Nobody'
 
 start_client Jeroen '[{"op":"info","label":"info"},{"op":"rename","label":"admin-rename","target":{"nameStartsWith":"Bob"},"name":"Renamed by admin"},{"op":"demolish","label":"admin-demolish","target":{"nameStartsWith":"Renamed by admin"}},{"op":"wait","ms":5000}]'
@@ -224,12 +227,12 @@ start_client Alice '[{"op":"info","label":"info"},{"op":"wait","ms":120000}]'
 wait_event Alice '.label == "info"' 150 >/dev/null
 sleep 5
 samples_before="$(curl -fsS "$API/api/history?hours=1" | jq '[.series[] | length] | add // 0')"
-docker compose stop openrct2 >/dev/null 2>&1   # the old container's log is gone after recreating it
+dc stop openrct2 >/dev/null 2>&1   # the old container's log is gone after recreating it
 check "shutdown save was written while a player was online" bash -c "docker logs openrct2-e2e-server 2>&1 | grep -q 'shutdown save: saved lan-latest.park'"
-docker compose up -d --force-recreate >/dev/null 2>&1
+dc up -d --force-recreate "${SERVICES[@]}" >/dev/null 2>&1
 check "after re-creating, the server resumes from the shutdown save" bash -c "sleep 20; docker logs openrct2-e2e-server 2>&1 | grep -q 'server is up .* with lan-latest.park'"
 check "server came back healthy after recreation" wait_healthy
-check "server resumed from the shutdown save, not the initial park" bash -c "docker compose logs openrct2 2>&1 | grep -q 'server is up .* lan-latest.park'"
+check "server resumed from the shutdown save, not the initial park" bash -c "dc logs openrct2 2>&1 | grep -q 'server is up .* lan-latest.park'"
 stop_client Alice
 check "dashboard reconnects to the restarted server" wait_until 60 '.overview.serverStatus == "online"'
 check "attraction and owner survived the restart" wait_until 30 ".rides[] | select(.uid == \"$alice_ride_uid\") | .owner.name == \"Alice\""
@@ -254,7 +257,7 @@ check "restore.sh kept a safety backup of the replaced data" test "$(new_backups
 check "server and dashboard healthy after restore" wait_healthy
 check "after restore the attractions and the admin are back" bash -c "
   sleep 10; diff <(curl -fsS '$API/api/state' | jq -r '.rides[] | select(.status != \"demolished\") | .uid' | sort) '$W/rides-before.txt' >/dev/null &&
-  docker compose exec -T openrct2 cat /data/users.json | jq -e '.[] | select(.name == \"Jeroen\") | .groupId == 0' >/dev/null"
+  dc exec -T openrct2 cat /data/users.json | jq -e '.[] | select(.name == \"Jeroen\") | .groupId == 0' >/dev/null"
 new_backups | while read -r f; do rm -f -- "$f"; done   # only the archives this test made
 rmdir backups 2>/dev/null || true
 

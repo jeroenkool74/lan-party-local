@@ -4,26 +4,27 @@ A self-contained OpenRCT2 multiplayer server for a LAN party (about 10 players),
 the FFA plugin suite (every player owns their own rides and money) and a read-only
 live web dashboard with leaderboards and history.
 
+The services `openrct2` and `dashboard` are defined in the repository root
+`docker-compose.yml` (LAN) and `docker-compose-local.yml` (your own machine via
+localhost). Run the commands below from the repository root:
+
 ```bash
 cp .env.example .env              # optional - every value has a default
-cp ~/my-park.park park/           # the park a NEW game starts from (see "Initial park")
-docker compose up -d --build
+# the park a NEW game starts from (see "Initial park"):
+ls ../lan-data/openrct2-park/     # sandbox-512x512.park
+docker compose up -d --build      # or: docker compose -f docker-compose-local.yml up -d --build
 ```
 
-The root `docker-compose.yml` of this repository includes this stack, so from the
-repository root `docker compose up -d --build` starts it together with traefik and the
-website (or only this stack: `docker compose up -d --build openrct2 dashboard`). Settings
-still come from `openrct2/.env`. Start it either from the root or from this directory, not
-both (the container names are the same; the data volumes are shared).
+Only this stack: `docker compose up -d --build openrct2 dashboard`.
 
-The scripts in `scripts/` use the fixed container, image and volume names from
-`compose.yaml` (plain `docker exec` / `docker run`, no `docker compose`), so they work
-however the stack was started, and including this stack in another compose file needs
-nothing more than an `include:` entry. They never touch other containers.
+The scripts in `scripts/` use the fixed container, image and volume names from the
+compose files (plain `docker exec` / `docker run`, no `docker compose`), so they work
+however the stack was started. They never touch other containers.
 
 * Game: connect to `SERVER-IP:11753` in OpenRCT2 (**Multiplayer → Connect to Server**,
   the IP of this machine). Clients must run **OpenRCT2 0.5.7**.
-* Dashboard: `http://SERVER-IP:8080`
+* Dashboard: `http://rct2.lan` (via traefik; `rct2.lan` must point to this machine).
+  Locally: `http://rct2.localhost` or `http://localhost:8081`.
 
 Everything works offline once the images are built (building needs internet once:
 Docker Hub images and npm packages for the dashboard).
@@ -31,9 +32,9 @@ Docker Hub images and npm packages for the dashboard).
 ## Contents
 
 ```
-compose.yaml              the whole stack (openrct2 + dashboard)
-.env.example              all settings, with defaults and explanations
-park/                     put your initial .park / .sv6 / .sc6 file here (read-only mount)
+../docker-compose*.yml    the stack (openrct2 + dashboard, together with traefik and the website)
+../.env.example           all settings, with defaults and explanations
+../../lan-data/openrct2-park/  the initial .park / .sv6 / .sc6 file (read-only mount, PARK_PATH)
 server/                   game-server image: official openrct2/openrct2-cli:0.5.7 + wrapper
   bin/entrypoint.sh       config, plugin install, save selection, archive, clean shutdown
   bin/users.sh            edit users.json (used by scripts/admin.sh)
@@ -53,7 +54,7 @@ tests/e2e/run.sh          end-to-end test with real OpenRCT2 clients
  players (OpenRCT2 0.5.7) ──TCP 11753──► openrct2  (headless server, plugins, saves in volume)
                                             │ lan-stats plugin: JSON snapshot every 10 s
                                             ▼ TCP 9000 (internal Docker network only)
- browsers ─────────────────HTTP 8080──► dashboard (Node: ingest → SQLite → REST + SSE → web UI)
+ browsers ──HTTP rct2.lan (traefik)──► dashboard (Node: ingest → SQLite → REST + SSE → web UI)
 ```
 
 * **Why the plugin connects to the dashboard (and not the other way around):** OpenRCT2
@@ -97,14 +98,14 @@ The wrapper (`server/bin/entrypoint.sh`) decides and logs it:
    `save/archive/`. If that file does not load (the wrapper checks the server really
    starts listening), it is remembered in `.lan/unloadable-saves.txt` and the next
    newest is tried. Files are never deleted or moved.
-2. Only if **no save exists at all**: the initial park from `./park` (`INITIAL_PARK`, or
+2. Only if **no save exists at all**: the initial park from `../lan-data/openrct2-park` (`PARK_PATH`) (`INITIAL_PARK`, or
    the only file in that directory).
 3. If saves exist but none loads, the server **refuses to start** instead of silently
    starting the initial park again (which would throw away the game). See "Recovery".
 
 ### Initial park
 
-Put a `.park`, `.sv6`, `.sc6` or `.sea` file in `park/`. With more than one file, set
+Put a `.park`, `.sv6`, `.sc6` or `.sea` file in `../lan-data/openrct2-park/` (or the directory in `PARK_PATH`). With more than one file, set
 `INITIAL_PARK=<file name>` in `.env`. It is only used for a brand-new game; to start
 over with a different park while saves exist, use `./scripts/new-park.sh` (it moves the
 old saves to `save/retired-<time>/`, nothing is deleted). The headless server does not
@@ -183,7 +184,7 @@ entrypoint only updates its own keys (`lan-stats`, `cheat-toggle`) and never dro
 
 ## Dashboard
 
-`http://SERVER-IP:8080` - updates live (Server-Sent Events, falls back to polling).
+`http://rct2.lan` - updates live (Server-Sent Events, falls back to polling).
 
 * **Overview**: server status, park date, players online / known, attractions, guests,
   simulation state (running / paused / no telemetry), last update.
@@ -227,8 +228,9 @@ docker compose restart openrct2           # saves first, then restarts
 docker compose down                       # stop; data stays in the volumes
 ```
 
-Ports and bind addresses: `OPENRCT2_BIND`, `OPENRCT2_PORT`, `DASHBOARD_BIND`,
-`DASHBOARD_PORT` in `.env` (e.g. bind to the LAN IP only). Only use this on a trusted
+Ports and bind addresses: `OPENRCT2_BIND`, `OPENRCT2_PORT` in `.env` (e.g. bind to the
+LAN IP only). The dashboard is only published through traefik (`rct2.lan`); in
+`docker-compose-local.yml` also on `DASHBOARD_BIND:DASHBOARD_PORT` (default `127.0.0.1:8081`). Only use this on a trusted
 LAN; do not forward these ports to the internet.
 
 ### Backup and restore

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Start over with the initial park from ./park. Existing saves are NOT deleted:
+# Start over with the initial park from ../lan-data/openrct2-park (PARK_PATH). Existing saves are NOT deleted:
 # they are moved to save/retired-<timestamp>/ inside the data volume (and a
 # backup is made first). Dashboard history is kept; attractions that no longer
 # exist are shown as demolished.
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 . scripts/lib.sh
-read -r -p "Retire all current saves and start a new game from ./park? Type 'new park': " answer
+read -r -p "Retire all current saves and start a new game from ../lan-data/openrct2-park (PARK_PATH)? Type 'new park': " answer
 [[ "$answer" == "new park" ]] || { echo "aborted"; exit 1; }
 ./scripts/backup.sh
 docker stop "$SERVER" >/dev/null

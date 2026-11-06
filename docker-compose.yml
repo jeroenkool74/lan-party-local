@@ -1,7 +1,15 @@
-# OpenRCT2 free-for-all server (TCP 11753) + live dashboard (http://SERVER-IP:8080).
-# Defined in openrct2/compose.yaml, settings in openrct2/.env; see openrct2/README.md.
-include:
-    - path: ./openrct2/compose.yaml
+# LAN party stack: traefik, the website (download.lan / home.lan), the OpenRCT2
+# free-for-all server (TCP 11753) and its live dashboard (rct2.lan).
+#   docker compose up -d --build
+# For running on your own machine via localhost use docker-compose-local.yml.
+# Settings: copy .env.example to .env (optional, every value has a default).
+# Everything that is mounted lives in ../lan-data (downloads/ and openrct2-park/).
+
+x-logging: &logging
+    driver: json-file
+    options:
+        max-size: "20m"
+        max-file: "5"
 
 services:
     traefik:
@@ -17,73 +25,11 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
 
-    # podiumforge-db:
-    #     image: postgres:16-alpine
-    #     restart: unless-stopped
-    #     environment:
-    #         POSTGRES_DB: podiumforge
-    #         POSTGRES_USER: podiumforge
-    #         POSTGRES_PASSWORD: podiumforge
-    #     volumes:
-    #         - podiumforge-postgres-data:/var/lib/postgresql/data
-    #     healthcheck:
-    #         test: ["CMD-SHELL", "pg_isready -U podiumforge -d podiumforge"]
-    #         interval: 5s
-    #         timeout: 5s
-    #         retries: 20
-
-    # podiumforge-mailpit:
-    #     image: axllent/mailpit:v1.24
-    #     restart: unless-stopped
-
-    # podiumforge-api:
-    #     image: "${PODIUMFORGE_API_IMAGE:-ghcr.io/jeroenkool74/podiumforge-api:latest}"
-    #     pull_policy: always
-    #     restart: unless-stopped
-    #     environment:
-    #         DATABASE_URL: postgresql+psycopg://podiumforge:podiumforge@podiumforge-db:5432/podiumforge
-    #         JWT_SECRET_KEY: "${PODIUMFORGE_JWT_SECRET_KEY:-change-me-local-secret}"
-    #         CORS_ORIGINS: '["http://download.lan","http://downloads.lan","http://home.lan","http://tournament.lan"]'
-    #         SEEDED_ADMIN_EMAIL: "${PODIUMFORGE_ADMIN_EMAIL:-admin@podiumforge.local}"
-    #         SEEDED_ADMIN_PASSWORD: "${PODIUMFORGE_ADMIN_PASSWORD:-admin1234}"
-    #         SEEDED_ADMIN_USERNAME: "${PODIUMFORGE_ADMIN_USERNAME:-admin}"
-    #         SMTP_HOST: "${PODIUMFORGE_SMTP_HOST:-podiumforge-mailpit}"
-    #         SMTP_PORT: "${PODIUMFORGE_SMTP_PORT:-1025}"
-    #         SMTP_FROM_EMAIL: "${PODIUMFORGE_SMTP_FROM_EMAIL:-no-reply@podiumforge.local}"
-    #         SMTP_FROM_NAME: "${PODIUMFORGE_SMTP_FROM_NAME:-PodiumForge}"
-    #         PASSWORD_RESET_URL_BASE: "${PODIUMFORGE_PASSWORD_RESET_URL_BASE:-http://tournament.lan/reset-password}"
-    #     depends_on:
-    #         podiumforge-db:
-    #             condition: service_healthy
-    #         podiumforge-mailpit:
-    #             condition: service_started
-    #     healthcheck:
-    #         test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
-    #         interval: 10s
-    #         timeout: 5s
-    #         retries: 12
-    #         start_period: 10s
-
-    # podiumforge-web:
-    #     image: "${PODIUMFORGE_WEB_IMAGE:-ghcr.io/jeroenkool74/podiumforge-web:latest}"
-    #     pull_policy: always
-    #     restart: unless-stopped
-    #     environment:
-    #         PODIUMFORGE_API_UPSTREAM: http://podiumforge-api:8000
-    #     depends_on:
-    #         podiumforge-api:
-    #             condition: service_healthy
-    #     labels:
-    #         traefik.enable: "true"
-    #         traefik.http.routers.podiumforge.rule: Host(`tournament.lan`)
-    #         traefik.http.routers.podiumforge.entrypoints: web
-    #         traefik.http.services.podiumforge.loadbalancer.server.port: "80"
-
     website-proxy:
         build:
             context: ./website
         volumes:
-            - "${DOWNLOADS_PATH:-./downloads}:/usr/share/nginx/html/downloads:ro"
+            - "${DOWNLOADS_PATH:-../lan-data/downloads}:/usr/share/nginx/html/downloads:ro"
         restart: unless-stopped
         labels:
             traefik.enable: "true"
@@ -91,5 +37,114 @@ services:
             traefik.http.routers.website-proxy.entrypoints: web
             traefik.http.services.website-proxy.loadbalancer.server.port: "80"
 
+    # OpenRCT2 game server, see openrct2/README.md.
+    openrct2:
+        build:
+            context: ./openrct2
+            dockerfile: server/Dockerfile
+            args:
+                OPENRCT2_VERSION: ${OPENRCT2_VERSION:-0.5.7}
+        image: lan-openrct2-server:${OPENRCT2_VERSION:-0.5.7}
+        container_name: ${NAME_PREFIX:-openrct2}-server
+        hostname: openrct2
+        restart: unless-stopped
+        init: true                      # OpenRCT2 has no signal handlers; tini + the entrypoint stop it cleanly
+        stop_grace_period: 40s          # time for the shutdown save
+        ports:
+            - "${OPENRCT2_BIND:-0.0.0.0}:${OPENRCT2_PORT:-11753}:11753/tcp"
+        environment:
+            TZ: ${TZ:-Europe/Amsterdam}
+            SERVER_NAME: "${SERVER_NAME:-LAN Tycoon}"
+            SERVER_DESCRIPTION: "${SERVER_DESCRIPTION:-Free-for-all - build your own rides, earn your own money}"
+            SERVER_GREETING: "${SERVER_GREETING:-Welcome! Say !help in chat. Rides you build are yours.}"
+            SERVER_PASSWORD: ${SERVER_PASSWORD:-}
+            MAX_PLAYERS: ${MAX_PLAYERS:-16}
+            INITIAL_PARK: ${INITIAL_PARK:-}
+            PAUSE_WHEN_EMPTY: ${PAUSE_WHEN_EMPTY:-true}
+            KNOWN_KEYS_ONLY: ${KNOWN_KEYS_ONLY:-false}
+            AUTOSAVE_FREQUENCY: ${AUTOSAVE_FREQUENCY:-1}
+            AUTOSAVE_AMOUNT: ${AUTOSAVE_AMOUNT:-24}
+            ARCHIVE_INTERVAL_MINUTES: ${ARCHIVE_INTERVAL_MINUTES:-60}
+            ARCHIVE_KEEP: ${ARCHIVE_KEEP:-48}
+            SAFETY_SAVE_SECONDS: ${SAFETY_SAVE_SECONDS:-60}
+            ENABLED_PLUGINS: ${ENABLED_PLUGINS:-ffa-ownership,ffa-individual-economy,ffa-anti-grief,ffa-rate-limit,ffa-disable-track-designs,ffa-cheat-toggle,lan-stats}
+            CHEAT_DISABLE_BREAKDOWNS: ${CHEAT_DISABLE_BREAKDOWNS:-true}
+            CHEAT_DISABLE_VANDALISM: ${CHEAT_DISABLE_VANDALISM:-true}
+            CHEAT_DISABLE_RIDE_VALUE_AGING: ${CHEAT_DISABLE_RIDE_VALUE_AGING:-true}
+            CHEAT_DISABLE_PLANT_AGING: ${CHEAT_DISABLE_PLANT_AGING:-true}
+            CHEAT_DISABLE_LITTERING: ${CHEAT_DISABLE_LITTERING:-true}
+            CHEAT_MOW_GRASS: ${CHEAT_MOW_GRASS:-true}
+            CHEAT_UNLOCK_ALL_RIDES: ${CHEAT_UNLOCK_ALL_RIDES:-true}
+            STATS_HOST: dashboard
+            STATS_PORT: "9000"
+            STATS_INTERVAL_MS: ${STATS_INTERVAL_MS:-10000}
+        volumes:
+            - openrct2-data:/data
+            - ${PARK_PATH:-../lan-data/openrct2-park}:/park:ro
+        networks: [game]
+        healthcheck:
+            # Listening on 11753 (0x2DE9) without opening a connection to the game.
+            test: ["CMD-SHELL", "test -f /tmp/openrct2.ready && grep -qiE ':2DE9 [0-9A-F]+:[0-9A-F]+ 0A' /proc/net/tcp /proc/net/tcp6"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 3m
+        security_opt: ["no-new-privileges:true"]
+        cap_drop: [ALL]
+        deploy:
+            resources:
+                limits:
+                    cpus: "${OPENRCT2_CPUS:-2}"
+                    memory: ${OPENRCT2_MEMORY:-3g}
+        logging: *logging
+
+    # Live statistics dashboard for the OpenRCT2 server.
+    dashboard:
+        build:
+            context: ./openrct2
+            dockerfile: dashboard/Dockerfile
+        image: lan-openrct2-dashboard:latest
+        container_name: ${NAME_PREFIX:-openrct2}-dashboard
+        hostname: dashboard
+        restart: unless-stopped
+        init: true
+        # The ingest port 9000 is intentionally not published: only the game server can reach it.
+        environment:
+            TZ: ${TZ:-Europe/Amsterdam}
+            DASHBOARD_TITLE: ${DASHBOARD_TITLE:-LAN Tycoon}
+            CURRENCY_SYMBOL: ${CURRENCY_SYMBOL:-€}
+            STATS_INTERVAL_MS: ${STATS_INTERVAL_MS:-10000}
+            HISTORY_SAMPLE_SECONDS: ${HISTORY_SAMPLE_SECONDS:-60}
+            GAME_HOST: openrct2
+            GAME_PORT: "11753"
+        volumes:
+            - dashboard-data:/data
+        networks: [game, default]
+        labels:
+            traefik.enable: "true"
+            traefik.docker.network: ${NETWORK_NAME:-lan-party}
+            traefik.http.routers.rct2.rule: Host(`rct2.lan`)
+            traefik.http.routers.rct2.entrypoints: web
+            traefik.http.services.rct2.loadbalancer.server.port: "8080"
+        security_opt: ["no-new-privileges:true"]
+        cap_drop: [ALL]
+        read_only: true
+        tmpfs: [/tmp]
+        deploy:
+            resources:
+                limits:
+                    cpus: "1"
+                    memory: 256m
+        logging: *logging
+
+networks:
+    default:
+        name: ${NETWORK_NAME:-lan-party}
+    game:
+        name: ${VOLUME_PREFIX:-lan-openrct2}
+
 volumes:
-    podiumforge-postgres-data:
+    openrct2-data:
+        name: ${VOLUME_PREFIX:-lan-openrct2}-data
+    dashboard-data:
+        name: ${VOLUME_PREFIX:-lan-openrct2}-dashboard-data
