@@ -190,3 +190,4 @@ export function getActionLabel(platform: PlatformDetails, link?: PlatformLink) {
 
   return `Info voor ${osLabels[platform.os]}`
 }
+

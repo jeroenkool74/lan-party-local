@@ -379,6 +379,7 @@ export const games: GameEntry[] = [
     ],
     server: {
       name: 'LAN Tycoon',
+      host: 'rct2.lan',
       port: 11753,
       clientVersion: '0.5.7',
       summary:
@@ -395,7 +396,14 @@ export const games: GameEntry[] = [
         'Typ !help in de chat in het spel voor de commando\'s, zoals !cash (je saldo) en !transfer (geld overmaken).',
         'Het park wordt automatisch opgeslagen; je kunt gerust stoppen en later verder bouwen.',
       ],
-      dashboardSubdomain: 'rct2',
+      links: [
+        {
+          label: 'Live scorebord',
+          href: 'http://rct2.lan',
+          description:
+            'Benieuwd wie er wint? Op het live scorebord zie je wie het meeste geld, de meeste bezoekers en de beste attracties heeft.',
+        },
+      ],
     },
     platforms: [
       platform(
