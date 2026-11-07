@@ -1,0 +1,4 @@
+backups/
+dashboard/node_modules/
+dashboard/web/dist/
+tests/e2e/.work/

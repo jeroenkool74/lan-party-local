@@ -1,0 +1,42 @@
+--- a/lib/cheat-toggle.js
++++ b/lib/cheat-toggle.js
+@@ -2,16 +2,19 @@
+     var SETCHEAT = (context.apiVersion > 65) ? ((context.apiVersion >= 74) ? 'cheatset' : 'setcheat') : 'setcheataction';
+     function enableCheats() {
+         if (network.mode === 'server') {
+-            setCheatAction(13);
+-            setCheatAction(25);
+-            setCheatAction(9);
+-            setCheatAction(43);
+-            setCheatAction(44);
+-            context.subscribe('interval.tick', function () {
+-                if (date.ticksElapsed % 10000 === 0) {
+-                    setCheatAction(23);
+-                }
+-            });
++            if (isEnabled('disableVandalism', true)) setCheatAction(13);
++            if (isEnabled('disablePlantAging', true)) setCheatAction(25);
++            if (isEnabled('disableAllBreakdowns', true)) setCheatAction(9);
++            if (isEnabled('disableRideValueAging', true)) setCheatAction(43);
++            if (isEnabled('unlockAllRides', true)) setCheatAction(44);
++            if (isEnabled('disableLittering', false)) setCheatAction(14);
++            if (isEnabled('mowGrass', true)) {
++                context.subscribe('interval.tick', function () {
++                    if (date.ticksElapsed % 10000 === 0) {
++                        setCheatAction(23);
++                    }
++                });
++            }
+         }
+         else if (typeof FFAPLUGINMSG === 'undefined') {
+             FFAPLUGINMSG = true;
+@@ -22,6 +25,9 @@
+                 '\n');
+         }
+     }
++    function isEnabled(name, defaultValue) {
++        return context.sharedStorage.get('cheat-toggle.' + name, defaultValue) !== false;
++    }
+     function setCheatAction(type, param1, param2) {
+         if (param1 === void 0) { param1 = 1; }
+         if (param2 === void 0) { param2 = 0; }

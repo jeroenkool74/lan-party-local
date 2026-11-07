@@ -1,0 +1,7 @@
+**/node_modules
+dashboard/web/dist
+backups
+park
+.env
+tests/e2e/.work
+**/.git

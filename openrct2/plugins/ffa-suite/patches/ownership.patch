@@ -1,0 +1,11 @@
+--- a/lib/ownership.js
++++ b/lib/ownership.js
+@@ -94,7 +94,7 @@
+                             }
+                         });
+                     };
+-                    if (e.player >= 0 && e.player < network.numPlayers) {
++                    if (e.player >= 0 && getPlayer(e.player) != null) {
+                         var ride = getRide(e.result['ride']);
+                         var player = getPlayer(e.player);
+                         rideOwners[ride.id] = player.publicKeyHash;

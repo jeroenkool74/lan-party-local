@@ -1,0 +1,30 @@
+--- a/lib/individual-economy.js
++++ b/lib/individual-economy.js
+@@ -100,7 +100,7 @@
+                         };
+                     }
+                     if (e.action === 'ridedemolish' &&
+-                        'ride' in e.args) {
++                        'ride' in e.args && isFullDemolish(e.args) && e.args['ride'] in rideProperties) {
+                         var r = e.args['ride'];
+                         rideProperties[r].previousTotalProfit = ((_a = getRide(r)) === null || _a === void 0 ? void 0 : _a.totalProfit) || 0;
+                     }
+@@ -114,7 +114,7 @@
+                         addRide(e.player, e.result['ride']);
+                     }
+                     else if (e.action === 'ridedemolish' &&
+-                        'ride' in e.args) {
++                        'ride' in e.args && isFullDemolish(e.args) && e.args['ride'] in rideProperties) {
+                         player = removeRide(e.args['ride']);
+                     }
+                     if ('cost' in e.result && typeof e.result.cost === 'number') {
+@@ -342,6 +342,9 @@
+             previousTotalProfit: 0
+         };
+     }
++    function isFullDemolish(args) {
++        return !('modifyType' in args) || args['modifyType'] === 0;
++    }
+     function removeRide(rideID) {
+         var playerHash = rideProperties[rideID].authorHash;
+         spendMoney(playerHash, -rideProperties[rideID].previousTotalProfit);
