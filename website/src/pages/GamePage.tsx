@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { GameServerPanel } from '../components/GameServerPanel'
 import { InstructionVideos } from '../components/InstructionVideos'
 import { PlatformDetail } from '../components/PlatformDetail'
 import { useChat } from '../features/chat/chatContext'
@@ -61,6 +62,12 @@ export function GamePage() {
             Bekijk alle bestanden
           </a>
 
+          {game.server ? (
+            <a className="button button--ghost" href="#server">
+              Meespelen op de LAN-server
+            </a>
+          ) : null}
+
           {game.videos?.length ? (
             <a className="button button--ghost" href="#instructievideo">
               Bekijk instructievideo
@@ -111,6 +118,8 @@ export function GamePage() {
           </div>
         </article>
       </section>
+
+      {game.server ? <GameServerPanel gameTitle={game.title} server={game.server} /> : null}
 
       {game.videos?.length ? (
         <InstructionVideos

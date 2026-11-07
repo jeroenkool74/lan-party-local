@@ -251,6 +251,25 @@ export const games: GameEntry[] = [
     videos: [
       video('windows', '/downloads/Minecraft/Windows/minecraft-windows-installeren.mp4'),
     ],
+    server: {
+      name: 'Minecraft LAN',
+      host: 'minecraft.lan',
+      clientVersion: '1.21.11',
+      summary:
+        'Tijdens de LAN draait er een eigen Minecraft-server met twee werelden: een survival-wereld waarin je samen grondstoffen verzamelt, bouwt en overleeft, en een creative-wereld waarin je zonder beperkingen kunt bouwen. Je komt binnen in een lobby en kiest daar zelf waar je heen gaat.',
+      joinSteps: [
+        'Installeer Minecraft met de bestanden hieronder; de meegeleverde instance staat al op de juiste versie.',
+        'Start de instance in PolyMC en kies Multiplayer.',
+        'Klik op Server toevoegen (Add Server) en vul het serveradres hierboven in.',
+        'Verbind met de server: je komt binnen in de lobby.',
+      ],
+      rules: [
+        'In de lobby kies je je wereld: loop door het portaal naar survival of naar creative.',
+        'Survival: samen overleven, grondstoffen verzamelen en bouwen. Je spullen en voortgang blijven bewaard.',
+        'Creative: onbeperkt blokken en vliegen, ideaal om in alle rust iets moois te bouwen.',
+        'Blijf van andermans bouwwerken af en sloop niets wat niet van jou is.',
+      ],
+    },
     platforms: [
       platform(
         'windows',
@@ -358,6 +377,26 @@ export const games: GameEntry[] = [
       video('windows', '/downloads/OpenRCT2/Windows/openrct2-windows-installeren.mp4'),
       video('linux', '/downloads/OpenRCT2/Linux/openrct2-linux-installeren.mp4'),
     ],
+    server: {
+      name: 'LAN Tycoon',
+      port: 11753,
+      clientVersion: '0.5.7',
+      summary:
+        'Tijdens de LAN draait er een eigen OpenRCT2-server: één groot gedeeld park waarin iedereen tegelijk bouwt. Het is free-for-all, dus iedereen heeft z\'n eigen geld en z\'n eigen attracties. Wie bouwt het meest winstgevende park?',
+      joinSteps: [
+        'Installeer OpenRCT2 met de bestanden hieronder (de server vereist versie 0.5.7).',
+        'Start OpenRCT2 en kies in het hoofdmenu Multiplayer.',
+        'Kies Verbinden met server (Connect to Server) en vul het serveradres hierboven in.',
+        'Kies een herkenbare spelersnaam: je statistieken op het scorebord blijven aan jouw computer gekoppeld, ook als je later opnieuw verbindt.',
+      ],
+      rules: [
+        'Iedereen heeft z\'n eigen geld: bouwen kost jouw geld, en de winst van jouw attracties is voor jou.',
+        'Attracties die jij bouwt zijn van jou; anderen kunnen ze niet aanpassen of slopen.',
+        'Typ !help in de chat in het spel voor de commando\'s, zoals !cash (je saldo) en !transfer (geld overmaken).',
+        'Het park wordt automatisch opgeslagen; je kunt gerust stoppen en later verder bouwen.',
+      ],
+      dashboardSubdomain: 'rct2',
+    },
     platforms: [
       platform(
         'windows',
