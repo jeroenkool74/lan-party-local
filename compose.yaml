@@ -154,7 +154,7 @@ services:
 
 networks:
     default:
-        name: ${NETWORK_NAME:-lan-party}
+        name: ${NETWORK_NAME:-traefik_proxy}
     game:
         name: ${VOLUME_PREFIX:-lan-openrct2}
 
