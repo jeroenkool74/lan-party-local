@@ -25,6 +25,13 @@ export interface InstructionVideo {
   href: string
 }
 
+/** A web page that belongs to a game server, e.g. a scoreboard or map. */
+export interface GameServerLink {
+  label: string
+  href: string
+  description?: string
+}
+
 export interface GameServer {
   /** Name shown in the game's server list / greeting. */
   name: string
@@ -37,8 +44,7 @@ export interface GameServer {
   summary: string
   joinSteps: string[]
   rules: string[]
-  /** Subdomain of the live dashboard, e.g. 'rct2' -> rct2.lan / rct2.localhost. */
-  dashboardSubdomain?: string
+  links?: GameServerLink[]
 }
 
 export interface GameEntry {

@@ -30,16 +30,47 @@ export function getPlatform(game: GameEntry, os: OperatingSystem) {
   return game.platforms.find((platform) => platform.os === os)
 }
 
-export function getVisitorOs(): OperatingSystem | undefined {
+type NavigatorWithUaData = Navigator & {
+  userAgentData?: {
+    mobile?: boolean
+    platform?: string
+  }
+}
+
+const mobileUserAgentPattern =
+  /android|iphone|ipad|ipod|mobile|windows phone|iemobile|blackberry|bb10|webos|opera mini|kaios|silk/i
+
+/**
+ * Phones and tablets (Android, iOS/iPadOS, Windows Phone, ...). Android
+ * reports itself as Linux and iOS as macOS, so this has to run before the
+ * desktop OS detection.
+ */
+export function isMobileDevice() {
   if (typeof navigator === 'undefined') {
+    return false
+  }
+
+  const nav = navigator as NavigatorWithUaData
+
+  if (nav.userAgentData?.mobile) {
+    return true
+  }
+
+  if (mobileUserAgentPattern.test(navigator.userAgent)) {
+    return true
+  }
+
+  // iPadOS 13+ pretends to be a Mac; real Macs have no touch screen.
+  return /macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1
+}
+
+/** Desktop OS of the visitor; undefined on phones/tablets or when unknown. */
+export function getVisitorOs(): OperatingSystem | undefined {
+  if (typeof navigator === 'undefined' || isMobileDevice()) {
     return undefined
   }
 
-  const nav = navigator as Navigator & {
-    userAgentData?: {
-      platform?: string
-    }
-  }
+  const nav = navigator as NavigatorWithUaData
   const userAgent = navigator.userAgent.toLowerCase()
   const platform = navigator.platform.toLowerCase()
   const userAgentDataPlatform = nav.userAgentData?.platform?.toLowerCase()
@@ -190,3 +221,4 @@ export function getActionLabel(platform: PlatformDetails, link?: PlatformLink) {
 
   return `Info voor ${osLabels[platform.os]}`
 }
+

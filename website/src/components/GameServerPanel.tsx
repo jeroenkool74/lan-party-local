@@ -6,13 +6,8 @@ interface GameServerPanelProps {
   server: GameServer
 }
 
-function isLocalhost(hostname: string) {
-  return hostname === 'localhost' || hostname.endsWith('.localhost')
-}
-
-// The game server runs on the same machine as this website, so the host the
-// visitor used to reach the site (download.lan, localhost, an IP) also works
-// in the game client.
+// Without a fixed host the game server runs on the same machine as this
+// website, so the host the visitor used to reach the site also works in game.
 function getServerHost() {
   if (typeof window === 'undefined' || !window.location.hostname) {
     return 'download.lan'
@@ -20,19 +15,18 @@ function getServerHost() {
   return window.location.hostname
 }
 
-function getDashboardHref(subdomain: string) {
-  const hostname = typeof window === 'undefined' ? '' : window.location.hostname
-  return isLocalhost(hostname)
-    ? `http://${subdomain}.localhost`
-    : `http://${subdomain}.lan`
+// Show "rct2.lan" rather than "http://rct2.lan/".
+function getLinkHost(href: string) {
+  try {
+    return new URL(href).host
+  } catch {
+    return href
+  }
 }
 
 export function GameServerPanel({ gameTitle, server }: GameServerPanelProps) {
   const host = server.host ?? getServerHost()
   const address = server.port ? `${host}:${server.port}` : host
-  const dashboardHref = server.dashboardSubdomain
-    ? getDashboardHref(server.dashboardSubdomain)
-    : undefined
   const [copied, setCopied] = useState(false)
 
   async function copyAddress() {
@@ -57,21 +51,38 @@ export function GameServerPanel({ gameTitle, server }: GameServerPanelProps) {
 
       <p className="game-server__summary">{server.summary}</p>
 
-      <div className="game-server__address">
-        <span>Serveradres</span>
-        <code>{address}</code>
-        {typeof navigator !== 'undefined' && navigator.clipboard ? (
-          <button
-            className="button button--ghost"
-            type="button"
-            onClick={copyAddress}
-          >
-            {copied ? 'Gekopieerd!' : 'Kopieer'}
-          </button>
-        ) : null}
-        <small>
-          {gameTitle} versie {server.clientVersion}
-        </small>
+      <div className="game-server__boxes">
+        <div className="game-server__box">
+          <span>Serveradres</span>
+          <code>{address}</code>
+          {typeof navigator !== 'undefined' && navigator.clipboard ? (
+            <button
+              className="button button--ghost"
+              type="button"
+              onClick={copyAddress}
+            >
+              {copied ? 'Gekopieerd!' : 'Kopieer'}
+            </button>
+          ) : null}
+          <small>
+            {gameTitle} versie {server.clientVersion}
+          </small>
+        </div>
+
+        {server.links?.map((link) => (
+          <div key={link.href} className="game-server__box">
+            <span>{link.label}</span>
+            <a
+              className="game-server__link"
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <code>{getLinkHost(link.href)}</code>
+            </a>
+            {link.description ? <small>{link.description}</small> : null}
+          </div>
+        ))}
       </div>
 
       <div className="detail-grid">
@@ -93,18 +104,6 @@ export function GameServerPanel({ gameTitle, server }: GameServerPanelProps) {
           </ul>
         </article>
       </div>
-
-      {dashboardHref ? (
-        <div className="game-server__dashboard">
-          <p>
-            Benieuwd wie er wint? Op het live scorebord zie je wie het meeste
-            geld, de meeste bezoekers en de beste attracties heeft.
-          </p>
-          <a className="button" href={dashboardHref} target="_blank" rel="noreferrer">
-            Bekijk het live scorebord
-          </a>
-        </div>
-      ) : null}
     </section>
   )
 }

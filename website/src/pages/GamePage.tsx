@@ -68,6 +68,18 @@ export function GamePage() {
             </a>
           ) : null}
 
+          {game.server?.links?.map((link) => (
+            <a
+              key={link.href}
+              className="button button--ghost"
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {link.label}
+            </a>
+          ))}
+
           {game.videos?.length ? (
             <a className="button button--ghost" href="#instructievideo">
               Bekijk instructievideo
@@ -119,7 +131,9 @@ export function GamePage() {
         </article>
       </section>
 
-      {game.server ? <GameServerPanel gameTitle={game.title} server={game.server} /> : null}
+      {game.server ? (
+        <GameServerPanel gameTitle={game.title} server={game.server} />
+      ) : null}
 
       {game.videos?.length ? (
         <InstructionVideos

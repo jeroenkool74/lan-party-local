@@ -12,7 +12,8 @@ interface InstructionVideosProps {
 
 function getInitialOs(videos: InstructionVideo[], visitorOs?: OperatingSystem) {
   if (!visitorOs) {
-    return videos[0]?.os
+    // Phone or unknown system: start with the Windows video.
+    return (videos.find((video) => video.os === 'windows') ?? videos[0])?.os
   }
 
   // Bekend systeem zonder eigen video: niets automatisch tonen, wel de andere aanbieden.
